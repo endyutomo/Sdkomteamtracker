@@ -31,6 +31,11 @@ const Auth = () => {
       toast.error('Format email tidak valid');
       return false;
     }
+    // Validasi domain email untuk registrasi
+    if (!isLogin && !email.toLowerCase().endsWith('@sdkom.co.id')) {
+      toast.error('Hanya email dengan domain @sdkom.co.id yang dapat mendaftar');
+      return false;
+    }
     if (password.length < 6) {
       toast.error('Password minimal 6 karakter');
       return false;
