@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { companySettingsSchema } from '@/lib/validations';
 
 export interface CompanySettings {
   id: string;
@@ -39,11 +40,22 @@ export function useCompanySettings() {
   }, [fetchSettings]);
 
   const updateSettings = async (updates: Partial<Omit<CompanySettings, 'id' | 'created_at' | 'updated_at'>>) => {
+    // Validate input
+    const validation = companySettingsSchema.partial().safeParse(updates);
+    if (!validation.success) {
+      toast({
+        title: 'Error',
+        description: validation.error.errors[0]?.message || 'Data tidak valid',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       if (settings) {
         const { data, error } = await supabase
           .from('company_settings')
-          .update(updates)
+          .update(validation.data)
           .eq('id', settings.id)
           .select()
           .single();
@@ -53,7 +65,7 @@ export function useCompanySettings() {
       } else {
         const { data, error } = await supabase
           .from('company_settings')
-          .insert(updates)
+          .insert(validation.data)
           .select()
           .single();
 

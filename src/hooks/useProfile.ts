@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
+import { profileSchema } from '@/lib/validations';
 
 export type DivisionType = 'sales' | 'presales' | 'manager';
 
@@ -82,14 +83,25 @@ export function useProfile() {
   const createProfile = async (profileData: { name: string; jabatan: string; division: DivisionType }) => {
     if (!user) return;
 
+    // Validate input
+    const validation = profileSchema.safeParse(profileData);
+    if (!validation.success) {
+      toast({
+        title: 'Error',
+        description: validation.error.errors[0]?.message || 'Data tidak valid',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('profiles')
         .insert({
           user_id: user.id,
-          name: profileData.name,
-          jabatan: profileData.jabatan,
-          division: profileData.division,
+          name: validation.data.name,
+          jabatan: validation.data.jabatan,
+          division: validation.data.division,
         })
         .select()
         .single();
@@ -120,10 +132,22 @@ export function useProfile() {
   };
 
   const updateProfile = async (id: string, updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+    // Validate input
+    const partialSchema = profileSchema.partial();
+    const validation = partialSchema.safeParse(updates);
+    if (!validation.success) {
+      toast({
+        title: 'Error',
+        description: validation.error.errors[0]?.message || 'Data tidak valid',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update(validation.data)
         .eq('id', id)
         .select()
         .single();

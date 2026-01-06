@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Person, PersonRole } from '@/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { personSchema } from '@/lib/validations';
 
 export function usePersons() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -47,13 +48,20 @@ export function usePersons() {
   const addPerson = async (person: Omit<Person, 'id' | 'createdAt'>) => {
     if (!user) return;
 
+    // Validate input
+    const validation = personSchema.safeParse(person);
+    if (!validation.success) {
+      toast.error(validation.error.errors[0]?.message || 'Data tidak valid');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('persons')
         .insert({
           user_id: user.id,
-          name: person.name,
-          role: person.role,
+          name: validation.data.name,
+          role: validation.data.role,
         })
         .select()
         .single();
@@ -77,11 +85,21 @@ export function usePersons() {
   };
 
   const updatePerson = async (id: string, updates: Partial<Omit<Person, 'id' | 'createdAt'>>) => {
+    // Validate input if provided
+    if (updates.name !== undefined || updates.role !== undefined) {
+      const partialSchema = personSchema.partial();
+      const validation = partialSchema.safeParse(updates);
+      if (!validation.success) {
+        toast.error(validation.error.errors[0]?.message || 'Data tidak valid');
+        return;
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('persons')
         .update({
-          name: updates.name,
+          name: updates.name?.trim(),
           role: updates.role,
         })
         .eq('id', id);
