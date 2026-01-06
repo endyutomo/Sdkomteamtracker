@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ActivityList } from '@/components/activities/ActivityList';
@@ -6,47 +7,44 @@ import { ActivityForm } from '@/components/activities/ActivityForm';
 import { PersonList } from '@/components/persons/PersonList';
 import { PersonForm } from '@/components/persons/PersonForm';
 import { Button } from '@/components/ui/button';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useAuth } from '@/hooks/useAuth';
+import { usePersons } from '@/hooks/usePersons';
+import { useActivities } from '@/hooks/useActivities';
 import { DailyActivity, Person } from '@/types';
-import { toast } from 'sonner';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { persons, loading: personsLoading, addPerson, updatePerson, deletePerson } = usePersons();
+  const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity } = useActivities();
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [activities, setActivities] = useLocalStorage<DailyActivity[]>('sales-activities', []);
-  const [persons, setPersons] = useLocalStorage<Person[]>('sales-persons', []);
-  
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [showPersonForm, setShowPersonForm] = useState(false);
   const [editActivity, setEditActivity] = useState<DailyActivity | null>(null);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
   // Activity handlers
-  const handleAddActivity = (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => {
+  const handleAddActivity = async (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => {
     if (editActivity) {
-      setActivities(prev => prev.map(a => 
-        a.id === editActivity.id 
-          ? { ...a, ...activity }
-          : a
-      ));
-      toast.success('Aktivitas berhasil diperbarui');
+      await updateActivity(editActivity.id, activity);
       setEditActivity(null);
     } else {
-      const newActivity: DailyActivity = {
-        ...activity,
-        id: crypto.randomUUID(),
-        createdAt: new Date(),
-      };
-      setActivities(prev => [...prev, newActivity]);
-      toast.success('Aktivitas berhasil ditambahkan');
+      await addActivity(activity);
     }
   };
 
-  const handleDeleteActivity = (id: string) => {
-    setActivities(prev => prev.filter(a => a.id !== id));
-    toast.success('Aktivitas berhasil dihapus');
+  const handleDeleteActivity = async (id: string) => {
+    await deleteActivity(id);
   };
 
   const handleEditActivity = (activity: DailyActivity) => {
@@ -55,29 +53,17 @@ const Index = () => {
   };
 
   // Person handlers
-  const handleAddPerson = (person: Omit<Person, 'id' | 'createdAt'>) => {
+  const handleAddPerson = async (person: Omit<Person, 'id' | 'createdAt'>) => {
     if (editPerson) {
-      setPersons(prev => prev.map(p => 
-        p.id === editPerson.id 
-          ? { ...p, ...person }
-          : p
-      ));
-      toast.success('Data person berhasil diperbarui');
+      await updatePerson(editPerson.id, person);
       setEditPerson(null);
     } else {
-      const newPerson: Person = {
-        ...person,
-        id: crypto.randomUUID(),
-        createdAt: new Date(),
-      };
-      setPersons(prev => [...prev, newPerson]);
-      toast.success('Person berhasil ditambahkan');
+      await addPerson(person);
     }
   };
 
-  const handleDeletePerson = (id: string) => {
-    setPersons(prev => prev.filter(p => p.id !== id));
-    toast.success('Person berhasil dihapus');
+  const handleDeletePerson = async (id: string) => {
+    await deletePerson(id);
   };
 
   const handleEditPerson = (person: Person) => {
@@ -97,6 +83,20 @@ const Index = () => {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const isLoading = personsLoading || activitiesLoading;
+
   return (
     <div className="min-h-screen bg-background">
       <Header 
@@ -109,78 +109,86 @@ const Index = () => {
       />
 
       <main className="container mx-auto px-4 py-6">
-        {activeTab === 'dashboard' && (
-          <Dashboard activities={activities} persons={persons} />
-        )}
-
-        {activeTab === 'activities' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">Aktivitas Harian</h2>
-                <p className="text-muted-foreground">Kelola semua aktivitas sales team</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari aktivitas..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <Button onClick={() => {
-                  setEditActivity(null);
-                  setShowActivityForm(true);
-                }} className="gap-2 shrink-0">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Tambah</span>
-                </Button>
-              </div>
-            </div>
-            
-            <ActivityList 
-              activities={filteredActivities}
-              onDelete={handleDeleteActivity}
-              onEdit={handleEditActivity}
-            />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        )}
+        ) : (
+          <>
+            {activeTab === 'dashboard' && (
+              <Dashboard activities={activities} persons={persons} />
+            )}
 
-        {activeTab === 'persons' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">Data Person</h2>
-                <p className="text-muted-foreground">Kelola data sales, presales, dan tim lainnya</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari person..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
+            {activeTab === 'activities' && (
+              <div className="space-y-6 animate-fade-in">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Aktivitas Harian</h2>
+                    <p className="text-muted-foreground">Kelola semua aktivitas sales team</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1 sm:w-64">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Cari aktivitas..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Button onClick={() => {
+                      setEditActivity(null);
+                      setShowActivityForm(true);
+                    }} className="gap-2 shrink-0">
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Tambah</span>
+                    </Button>
+                  </div>
                 </div>
-                <Button onClick={() => {
-                  setEditPerson(null);
-                  setShowPersonForm(true);
-                }} className="gap-2 shrink-0">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Tambah</span>
-                </Button>
+                
+                <ActivityList 
+                  activities={filteredActivities}
+                  onDelete={handleDeleteActivity}
+                  onEdit={handleEditActivity}
+                />
               </div>
-            </div>
-            
-            <PersonList 
-              persons={filteredPersons}
-              onDelete={handleDeletePerson}
-              onEdit={handleEditPerson}
-            />
-          </div>
+            )}
+
+            {activeTab === 'persons' && (
+              <div className="space-y-6 animate-fade-in">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Data Person</h2>
+                    <p className="text-muted-foreground">Kelola data sales, presales, dan tim lainnya</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1 sm:w-64">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Cari person..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Button onClick={() => {
+                      setEditPerson(null);
+                      setShowPersonForm(true);
+                    }} className="gap-2 shrink-0">
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Tambah</span>
+                    </Button>
+                  </div>
+                </div>
+                
+                <PersonList 
+                  persons={filteredPersons}
+                  onDelete={handleDeletePerson}
+                  onEdit={handleEditPerson}
+                />
+              </div>
+            )}
+          </>
         )}
       </main>
 
