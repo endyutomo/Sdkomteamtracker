@@ -26,6 +26,13 @@ import { id } from 'date-fns/locale';
 import { CalendarIcon, Users, Camera, X, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { LocationPicker } from './LocationPicker';
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  locationName: string;
+}
 
 interface ActivityFormProps {
   open: boolean;
@@ -57,6 +64,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [collaborationPersonId, setCollaborationPersonId] = useState('');
   const [collaborationPersonName, setCollaborationPersonName] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [location, setLocation] = useState<LocationData | undefined>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get profiles by division for selection - include managers
@@ -105,6 +113,15 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       setCustomerName(editActivity.customerName);
       setNotes(editActivity.notes);
       setPhotos(editActivity.photos || []);
+      if (editActivity.latitude && editActivity.longitude) {
+        setLocation({
+          latitude: editActivity.latitude,
+          longitude: editActivity.longitude,
+          locationName: editActivity.locationName || '',
+        });
+      } else {
+        setLocation(undefined);
+      }
       if (editActivity.collaboration) {
         setHasCollaboration(true);
         setCollaborationDivision(editActivity.collaboration.division);
@@ -128,6 +145,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setCollaborationPersonId('');
     setCollaborationPersonName('');
     setPhotos([]);
+    setLocation(undefined);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,6 +217,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       notes: notes.trim(),
       collaboration,
       photos: activityType === 'visit' ? photos : undefined,
+      latitude: activityType === 'visit' ? location?.latitude : undefined,
+      longitude: activityType === 'visit' ? location?.longitude : undefined,
+      locationName: activityType === 'visit' ? location?.locationName : undefined,
     });
 
     resetForm();
@@ -361,7 +382,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 </p>
               </div>
 
-              {/* Collaboration (only for sales activities) */}
+              {/* Location Picker */}
+              <LocationPicker value={location} onChange={setLocation} />
               {category === 'sales' && (
               <div className="space-y-4 rounded-lg border border-border p-4">
                 <div className="flex items-center justify-between">

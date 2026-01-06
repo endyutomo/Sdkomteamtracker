@@ -23,6 +23,9 @@ export type Database = {
           customer_name: string
           date: string
           id: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
           notes: string | null
           person_id: string | null
           person_name: string
@@ -37,6 +40,9 @@ export type Database = {
           customer_name: string
           date?: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           notes?: string | null
           person_id?: string | null
           person_name: string
@@ -51,6 +57,9 @@ export type Database = {
           customer_name?: string
           date?: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           notes?: string | null
           person_id?: string | null
           person_name?: string

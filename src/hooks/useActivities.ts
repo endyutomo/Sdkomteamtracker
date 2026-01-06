@@ -36,6 +36,9 @@ export function useActivities() {
         notes: a.notes || '',
         collaboration: a.collaboration as unknown as Collaboration | undefined,
         photos: a.photos || [],
+        latitude: a.latitude ?? undefined,
+        longitude: a.longitude ?? undefined,
+        locationName: a.location_name ?? undefined,
         createdAt: new Date(a.created_at),
       }));
 
@@ -69,6 +72,9 @@ export function useActivities() {
         notes: activity.notes,
         collaboration: activity.collaboration ? JSON.parse(JSON.stringify(activity.collaboration)) : null,
         photos: activity.photos || [],
+        latitude: activity.latitude ?? null,
+        longitude: activity.longitude ?? null,
+        location_name: activity.locationName ?? null,
       };
 
       const { data, error } = await supabase
@@ -90,6 +96,9 @@ export function useActivities() {
         notes: data.notes || '',
         collaboration: data.collaboration as unknown as Collaboration | undefined,
         photos: data.photos || [],
+        latitude: data.latitude ?? undefined,
+        longitude: data.longitude ?? undefined,
+        locationName: data.location_name ?? undefined,
         createdAt: new Date(data.created_at),
       };
 
@@ -119,6 +128,9 @@ export function useActivities() {
       if (updates.notes !== undefined) updateData.notes = updates.notes;
       if (updates.collaboration !== undefined) updateData.collaboration = updates.collaboration || null;
       if (updates.photos !== undefined) updateData.photos = updates.photos;
+      if (updates.latitude !== undefined) updateData.latitude = updates.latitude ?? null;
+      if (updates.longitude !== undefined) updateData.longitude = updates.longitude ?? null;
+      if (updates.locationName !== undefined) updateData.location_name = updates.locationName ?? null;
 
       const { error } = await supabase
         .from('activities')

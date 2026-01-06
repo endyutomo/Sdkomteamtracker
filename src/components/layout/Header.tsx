@@ -1,4 +1,4 @@
-import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, Building2 } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,6 +30,7 @@ export function Header({
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'activities', label: 'Aktivitas', icon: Activity },
+    { id: 'report', label: 'Report', icon: FileSpreadsheet },
     { id: 'persons', label: 'Tim', icon: Users },
   ];
 
