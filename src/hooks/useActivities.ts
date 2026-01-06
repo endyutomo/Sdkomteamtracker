@@ -41,6 +41,7 @@ export function useActivities() {
         latitude: a.latitude ?? undefined,
         longitude: a.longitude ?? undefined,
         locationName: a.location_name ?? undefined,
+        reminderAt: a.reminder_at ? new Date(a.reminder_at) : null,
         createdAt: new Date(a.created_at),
       }));
 
@@ -79,6 +80,9 @@ export function useActivities() {
         latitude: activity.latitude ?? null,
         longitude: activity.longitude ?? null,
         location_name: activity.locationName ?? null,
+        reminder_at: activity.reminderAt instanceof Date 
+          ? activity.reminderAt.toISOString() 
+          : activity.reminderAt ?? null,
       };
 
       const { data, error } = await supabase
@@ -105,6 +109,7 @@ export function useActivities() {
         latitude: data.latitude ?? undefined,
         longitude: data.longitude ?? undefined,
         locationName: data.location_name ?? undefined,
+        reminderAt: data.reminder_at ? new Date(data.reminder_at) : null,
         createdAt: new Date(data.created_at),
       };
 
@@ -139,6 +144,11 @@ export function useActivities() {
       if (updates.latitude !== undefined) updateData.latitude = updates.latitude ?? null;
       if (updates.longitude !== undefined) updateData.longitude = updates.longitude ?? null;
       if (updates.locationName !== undefined) updateData.location_name = updates.locationName ?? null;
+      if (updates.reminderAt !== undefined) {
+        updateData.reminder_at = updates.reminderAt instanceof Date 
+          ? updates.reminderAt.toISOString() 
+          : updates.reminderAt ?? null;
+      }
 
       const { error } = await supabase
         .from('activities')

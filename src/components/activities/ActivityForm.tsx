@@ -23,7 +23,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Users, Camera, X, ImagePlus } from 'lucide-react';
+import { CalendarIcon, Users, Camera, X, ImagePlus, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { LocationPicker } from './LocationPicker';
@@ -67,6 +67,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [collaborationPersonName, setCollaborationPersonName] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | undefined>();
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderDate, setReminderDate] = useState<Date | undefined>();
+  const [reminderTime, setReminderTime] = useState('09:00');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get profiles by division for selection - include managers
@@ -132,6 +135,18 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
         setCollaborationPersonId(editActivity.collaboration.personId || '');
         setCollaborationPersonName(editActivity.collaboration.personName);
       }
+      if (editActivity.reminderAt) {
+        setHasReminder(true);
+        const reminderDateTime = new Date(editActivity.reminderAt);
+        setReminderDate(reminderDateTime);
+        setReminderTime(
+          `${String(reminderDateTime.getHours()).padStart(2, '0')}:${String(reminderDateTime.getMinutes()).padStart(2, '0')}`
+        );
+      } else {
+        setHasReminder(false);
+        setReminderDate(undefined);
+        setReminderTime('09:00');
+      }
     } else {
       resetForm();
     }
@@ -152,6 +167,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setCollaborationPersonName('');
     setPhotos([]);
     setLocation(undefined);
+    setHasReminder(false);
+    setReminderDate(undefined);
+    setReminderTime('09:00');
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,6 +233,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       };
     }
 
+    // Build reminder datetime
+    let reminderAt: Date | null = null;
+    if (hasReminder && reminderDate) {
+      const [hours, minutes] = reminderTime.split(':').map(Number);
+      reminderAt = new Date(reminderDate);
+      reminderAt.setHours(hours, minutes, 0, 0);
+    }
+
     onSubmit({
       date,
       category,
@@ -230,6 +256,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       latitude: activityType === 'visit' ? location?.latitude : undefined,
       longitude: activityType === 'visit' ? location?.longitude : undefined,
       locationName: activityType === 'visit' ? location?.locationName : undefined,
+      reminderAt,
     });
 
     resetForm();
@@ -510,6 +537,58 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
               </div>
             </>
           )}
+
+          {/* Reminder */}
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-medium">Reminder</Label>
+              </div>
+              <Switch
+                checked={hasReminder}
+                onCheckedChange={setHasReminder}
+              />
+            </div>
+
+            {hasReminder && (
+              <div className="space-y-4 animate-slide-up">
+                <div className="space-y-2">
+                  <Label>Tanggal Reminder</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !reminderDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {reminderDate ? format(reminderDate, 'PPP', { locale: id }) : 'Pilih tanggal'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={reminderDate}
+                        onSelect={(d) => d && setReminderDate(d)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>Waktu Reminder</Label>
+                  <Input
+                    type="time"
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Notes */}
           <div className="space-y-2">
