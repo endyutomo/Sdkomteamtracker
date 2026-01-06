@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Activity, Users, MapPin, TrendingUp, Briefcase } from 'lucide-react';
+import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
 import { RecentActivities } from './RecentActivities';
@@ -13,9 +14,11 @@ interface DashboardProps {
   activities: DailyActivity[];
   persons: Person[];
   allProfiles: Profile[];
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function Dashboard({ activities, persons, allProfiles }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, onRefresh, isRefreshing }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
@@ -45,6 +48,20 @@ export function Dashboard({ activities, persons, allProfiles }: DashboardProps) 
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Refresh Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Memperbarui...' : 'Refresh Data'}
+        </Button>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
