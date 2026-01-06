@@ -57,15 +57,7 @@ export type Database = {
           photos?: string[] | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "activities_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "persons"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       company_settings: {
         Row: {
