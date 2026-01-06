@@ -15,11 +15,14 @@ export interface Collaboration {
   personName: string;
 }
 
+export type ActivityCategory = 'sales' | 'presales';
+
 export interface DailyActivity {
   id: string;
   date: Date;
-  salesPersonId: string;
-  salesPersonName: string;
+  category: ActivityCategory;
+  personId: string;
+  personName: string;
   activityType: ActivityType;
   customerName: string;
   notes: string;
