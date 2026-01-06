@@ -11,6 +11,7 @@ interface StatCardProps {
     isPositive: boolean;
   };
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'info';
+  onClick?: () => void;
 }
 
 const variantStyles = {
@@ -29,12 +30,16 @@ const iconStyles = {
   info: 'bg-info/10 text-info',
 };
 
-export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 'default' }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 'default', onClick }: StatCardProps) {
   return (
-    <div className={cn(
-      'rounded-xl border p-6 shadow-card animate-fade-in',
-      variantStyles[variant]
-    )}>
+    <div 
+      className={cn(
+        'rounded-xl border p-6 shadow-card animate-fade-in',
+        variantStyles[variant],
+        onClick && 'cursor-pointer hover:shadow-lg transition-shadow'
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
