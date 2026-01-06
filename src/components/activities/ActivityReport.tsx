@@ -100,8 +100,9 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const [activityTypeFilter, setActivityTypeFilter] = useState<string>('all');
 
-  // Filter activities based on search and date filters
+  // Filter activities based on search, activity type, and date filters
   const filteredActivities = useMemo(() => {
     return activities.filter(activity => {
       // Search filter
@@ -112,6 +113,11 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         activity.locationName?.toLowerCase().includes(searchQuery.toLowerCase());
 
       if (!matchesSearch) return false;
+
+      // Activity type filter
+      if (activityTypeFilter !== 'all' && activity.activityType !== activityTypeFilter) {
+        return false;
+      }
 
       // Date filter
       const activityDate = new Date(activity.date);
@@ -136,7 +142,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
 
       return true;
     });
-  }, [activities, searchQuery, filterType, selectedDate, selectedMonth, selectedYear]);
+  }, [activities, searchQuery, filterType, selectedDate, selectedMonth, selectedYear, activityTypeFilter]);
 
   // Group activities by division
   const salesActivities = filteredActivities.filter(a => a.category === 'sales' || !a.category);
@@ -148,6 +154,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
     setSelectedDate(undefined);
     setSelectedMonth('');
     setSelectedYear(String(currentYear));
+    setActivityTypeFilter('all');
   };
 
   // Export to Excel
@@ -322,6 +329,47 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
 
             {/* Filter Type Selector */}
             <div className="flex flex-wrap gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Tipe Aktivitas</Label>
+                <Select value={activityTypeFilter} onValueChange={setActivityTypeFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Semua Tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Semua Tipe
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="visit">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Kunjungan
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="call">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        Telepon
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="email">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="meeting">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Meeting
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Filter Waktu</Label>
                 <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
