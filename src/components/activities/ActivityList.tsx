@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { DailyActivity, Person } from '@/types';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +52,8 @@ const activityColors = {
 };
 
 export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps) {
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  
   const sortedActivities = [...activities].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -92,6 +99,27 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                     {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: id })}
                   </p>
                   
+                  {/* Photos for visit activity */}
+                  {activity.activityType === 'visit' && activity.photos && activity.photos.length > 0 && (
+                    <div className="mt-3">
+                      <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground">
+                        <ImageIcon className="h-3 w-3" />
+                        <span>Foto Kunjungan ({activity.photos.length})</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {activity.photos.map((photo, photoIndex) => (
+                          <img
+                            key={photoIndex}
+                            src={photo}
+                            alt={`Foto kunjungan ${photoIndex + 1}`}
+                            className="h-16 w-16 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setSelectedPhoto(photo)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {activity.collaboration && (
                     <div className="mt-3">
                       <Badge className="bg-info/10 text-info border-info/20 hover:bg-info/20">
@@ -151,6 +179,19 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
           </div>
         );
       })}
+
+      {/* Photo Preview Dialog */}
+      <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          {selectedPhoto && (
+            <img
+              src={selectedPhoto}
+              alt="Preview foto kunjungan"
+              className="w-full h-auto rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

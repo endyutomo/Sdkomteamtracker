@@ -24,5 +24,6 @@ export interface DailyActivity {
   customerName: string;
   notes: string;
   collaboration?: Collaboration;
+  photos?: string[]; // Base64 encoded photos for visit activity
   createdAt: Date;
 }
