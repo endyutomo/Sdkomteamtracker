@@ -88,7 +88,7 @@ const Index = () => {
   // Filter activities by search
   const filteredActivities = activities.filter(a => 
     a.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.salesPersonName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     a.notes.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

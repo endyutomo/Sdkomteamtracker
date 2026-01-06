@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { DailyActivity, ActivityType, Person, Collaboration } from '@/types';
+import { DailyActivity, ActivityType, ActivityCategory, Person, Collaboration } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +44,8 @@ const activityTypes: { value: ActivityType; label: string }[] = [
 
 export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }: ActivityFormProps) {
   const [date, setDate] = useState<Date>(new Date());
-  const [salesPersonId, setSalesPersonId] = useState('');
+  const [category, setCategory] = useState<ActivityCategory>('sales');
+  const [personId, setPersonId] = useState('');
   const [activityType, setActivityType] = useState<ActivityType>('visit');
   const [customerName, setCustomerName] = useState('');
   const [notes, setNotes] = useState('');
@@ -58,11 +59,15 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
   const salesPersons = persons.filter(p => p.role === 'sales');
   const presalesPersons = persons.filter(p => p.role === 'presales');
   const otherPersons = persons.filter(p => p.role === 'other');
+  
+  // Get available persons based on selected category
+  const availablePersons = category === 'sales' ? salesPersons : presalesPersons;
 
   useEffect(() => {
     if (editActivity) {
       setDate(new Date(editActivity.date));
-      setSalesPersonId(editActivity.salesPersonId);
+      setCategory(editActivity.category || 'sales');
+      setPersonId(editActivity.personId || '');
       setActivityType(editActivity.activityType);
       setCustomerName(editActivity.customerName);
       setNotes(editActivity.notes);
@@ -80,7 +85,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
 
   const resetForm = () => {
     setDate(new Date());
-    setSalesPersonId('');
+    setCategory('sales');
+    setPersonId('');
     setActivityType('visit');
     setCustomerName('');
     setNotes('');
@@ -121,8 +127,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!salesPersonId) {
-      toast.error('Pilih sales person');
+    if (!personId) {
+      toast.error(`Pilih ${category === 'sales' ? 'sales' : 'presales'} person`);
       return;
     }
     
@@ -131,14 +137,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
       return;
     }
 
-    const salesPerson = persons.find(p => p.id === salesPersonId);
+    const selectedPerson = persons.find(p => p.id === personId);
     
     let collaboration: Collaboration | undefined;
-    if (hasCollaboration && activityType === 'visit') {
+    if (hasCollaboration && activityType === 'visit' && category === 'sales') {
       const collabPerson = persons.find(p => p.id === collaborationPersonId);
-      const personName = collabPerson?.name || collaborationPersonName;
+      const collabName = collabPerson?.name || collaborationPersonName;
       
-      if (!personName.trim()) {
+      if (!collabName.trim()) {
         toast.error('Masukkan nama orang untuk kolaborasi');
         return;
       }
@@ -146,14 +152,15 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
       collaboration = {
         division: collaborationDivision,
         personId: collaborationPersonId || undefined,
-        personName,
+        personName: collabName,
       };
     }
 
     onSubmit({
       date,
-      salesPersonId,
-      salesPersonName: salesPerson?.name || '',
+      category,
+      personId,
+      personName: selectedPerson?.name || '',
       activityType,
       customerName: customerName.trim(),
       notes: notes.trim(),
@@ -175,6 +182,23 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Kategori Aktivitas</Label>
+            <Select value={category} onValueChange={(v) => {
+              setCategory(v as ActivityCategory);
+              setPersonId('');
+            }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sales">Aktivitas Sales</SelectItem>
+                <SelectItem value="presales">Aktivitas Presales</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Date */}
           <div className="space-y-2">
             <Label>Tanggal</Label>
@@ -202,20 +226,20 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
             </Popover>
           </div>
 
-          {/* Sales Person */}
+          {/* Person */}
           <div className="space-y-2">
-            <Label>Sales Person</Label>
-            <Select value={salesPersonId} onValueChange={setSalesPersonId}>
+            <Label>{category === 'sales' ? 'Sales Person' : 'Presales Person'}</Label>
+            <Select value={personId} onValueChange={setPersonId}>
               <SelectTrigger>
-                <SelectValue placeholder="Pilih sales person" />
+                <SelectValue placeholder={`Pilih ${category === 'sales' ? 'sales' : 'presales'} person`} />
               </SelectTrigger>
               <SelectContent>
-                {salesPersons.length === 0 ? (
+                {availablePersons.length === 0 ? (
                   <div className="p-2 text-sm text-muted-foreground">
-                    Belum ada data sales. Tambahkan di menu Data Person.
+                    Belum ada data {category}. Tambahkan di menu Data Person.
                   </div>
                 ) : (
-                  salesPersons.map((person) => (
+                  availablePersons.map((person) => (
                     <SelectItem key={person.id} value={person.id}>
                       {person.name}
                     </SelectItem>
@@ -304,7 +328,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
                 </p>
               </div>
 
-              {/* Collaboration */}
+              {/* Collaboration (only for sales activities) */}
+              {category === 'sales' && (
               <div className="space-y-4 rounded-lg border border-border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -387,6 +412,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
                   </div>
                 )}
               </div>
+              )}
             </>
           )}
 

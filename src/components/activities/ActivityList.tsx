@@ -91,9 +91,12 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                     <Badge variant="outline" className="text-xs">
                       {activityLabels[activity.activityType]}
                     </Badge>
+                    <Badge variant={activity.category === 'presales' ? 'secondary' : 'default'} className="text-xs">
+                      {activity.category === 'presales' ? 'Presales' : 'Sales'}
+                    </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Sales: {activity.salesPersonName}
+                    {activity.category === 'presales' ? 'Presales' : 'Sales'}: {activity.personName}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: id })}

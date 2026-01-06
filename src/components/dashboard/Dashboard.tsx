@@ -1,4 +1,4 @@
-import { Activity, Users, MapPin, TrendingUp } from 'lucide-react';
+import { Activity, Users, MapPin, TrendingUp, Briefcase } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
 import { RecentActivities } from './RecentActivities';
@@ -11,22 +11,38 @@ interface DashboardProps {
 }
 
 export function Dashboard({ activities, persons }: DashboardProps) {
-  const todayActivities = activities.filter(a => isToday(new Date(a.date)));
-  const weekActivities = activities.filter(a => isThisWeek(new Date(a.date)));
+  const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
+  const presalesActivities = activities.filter(a => a.category === 'presales');
+  
+  const todaySalesActivities = salesActivities.filter(a => isToday(new Date(a.date)));
+  const todayPresalesActivities = presalesActivities.filter(a => isToday(new Date(a.date)));
+  
+  const weekSalesActivities = salesActivities.filter(a => isThisWeek(new Date(a.date)));
+  const weekPresalesActivities = presalesActivities.filter(a => isThisWeek(new Date(a.date)));
+  
   const visitActivities = activities.filter(a => a.activityType === 'visit');
   const collaborationActivities = activities.filter(a => a.collaboration);
+  
   const salesCount = persons.filter(p => p.role === 'sales').length;
+  const presalesCount = persons.filter(p => p.role === 'presales').length;
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
-          title="Aktivitas Hari Ini"
-          value={todayActivities.length}
-          subtitle={`${weekActivities.length} minggu ini`}
+          title="Aktivitas Sales"
+          value={todaySalesActivities.length}
+          subtitle={`${weekSalesActivities.length} minggu ini`}
           icon={Activity}
           variant="primary"
+        />
+        <StatCard
+          title="Aktivitas Presales"
+          value={todayPresalesActivities.length}
+          subtitle={`${weekPresalesActivities.length} minggu ini`}
+          icon={Briefcase}
+          variant="info"
         />
         <StatCard
           title="Total Kunjungan"
@@ -40,14 +56,14 @@ export function Dashboard({ activities, persons }: DashboardProps) {
           value={collaborationActivities.length}
           subtitle="Kunjungan dengan tim"
           icon={Users}
-          variant="info"
+          variant="warning"
         />
         <StatCard
-          title="Tim Sales"
-          value={salesCount}
-          subtitle={`${persons.length} total anggota`}
+          title="Tim"
+          value={salesCount + presalesCount}
+          subtitle={`${salesCount} sales, ${presalesCount} presales`}
           icon={TrendingUp}
-          variant="warning"
+          variant="primary"
         />
       </div>
 
