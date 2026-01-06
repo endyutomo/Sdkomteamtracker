@@ -197,8 +197,10 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     const selectedOption = availableOptions.find(p => p.id === personId);
     
     let collaboration: Collaboration | undefined;
-    if (hasCollaboration && activityType === 'visit' && category === 'sales') {
-      const collabOption = availablePresalesOptions.find(p => p.id === collaborationPersonId);
+    if (hasCollaboration && activityType === 'visit') {
+      // For sales category, collab with presales; for presales category, collab with sales
+      const collabOptions = category === 'sales' ? availablePresalesOptions : availableSalesOptions;
+      const collabOption = collabOptions.find(p => p.id === collaborationPersonId);
       const collabName = collabOption?.name || collaborationPersonName;
       
       if (!collabName.trim()) {
@@ -412,12 +414,11 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
 
               {/* Location Picker */}
               <LocationPicker value={location} onChange={setLocation} />
-              {category === 'sales' && (
               <div className="space-y-4 rounded-lg border border-border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    <Label className="font-medium">Kolaborasi</Label>
+                    <Label className="font-medium">Kolaborasi {category === 'sales' ? 'dengan Presales' : 'dengan Sales'}</Label>
                   </div>
                   <Switch
                     checked={hasCollaboration}
@@ -441,33 +442,45 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="presales">Presales</SelectItem>
-                          <SelectItem value="other">Divisi Lain</SelectItem>
+                          {category === 'sales' ? (
+                            <>
+                              <SelectItem value="presales">Presales</SelectItem>
+                              <SelectItem value="other">Divisi Lain</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="presales">Sales</SelectItem>
+                              <SelectItem value="other">Divisi Lain</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label>
-                        {collaborationDivision === 'presales' ? 'Pilih Presales' : 'Nama Orang'}
+                        {collaborationDivision === 'presales' 
+                          ? (category === 'sales' ? 'Pilih Presales' : 'Pilih Sales')
+                          : 'Nama Orang'}
                       </Label>
                       {collaborationDivision === 'presales' ? (
                         <>
                           <Select value={collaborationPersonId} onValueChange={(v) => {
                             setCollaborationPersonId(v);
-                            const option = availablePresalesOptions.find(p => p.id === v);
+                            const collabOptions = category === 'sales' ? availablePresalesOptions : availableSalesOptions;
+                            const option = collabOptions.find(p => p.id === v);
                             setCollaborationPersonName(option?.name || '');
                           }}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Pilih presales" />
+                              <SelectValue placeholder={category === 'sales' ? 'Pilih presales' : 'Pilih sales'} />
                             </SelectTrigger>
                             <SelectContent>
-                              {availablePresalesOptions.length === 0 ? (
+                              {(category === 'sales' ? availablePresalesOptions : availableSalesOptions).length === 0 ? (
                                 <div className="p-2 text-sm text-muted-foreground">
-                                  Belum ada anggota presales terdaftar
+                                  Belum ada anggota {category === 'sales' ? 'presales' : 'sales'} terdaftar
                                 </div>
                               ) : (
-                                availablePresalesOptions.map((option) => (
+                                (category === 'sales' ? availablePresalesOptions : availableSalesOptions).map((option) => (
                                   <SelectItem key={option.id} value={option.id}>
                                     {option.name}
                                   </SelectItem>
@@ -475,7 +488,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                               )}
                             </SelectContent>
                           </Select>
-                          {availablePresalesOptions.length === 0 && (
+                          {(category === 'sales' ? availablePresalesOptions : availableSalesOptions).length === 0 && (
                             <Input
                               value={collaborationPersonName}
                               onChange={(e) => setCollaborationPersonName(e.target.value)}
@@ -495,7 +508,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                   </div>
                 )}
               </div>
-              )}
             </>
           )}
 

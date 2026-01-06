@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DailyActivity, Person } from '@/types';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 
 interface ActivityListProps {
   activities: DailyActivity[];
@@ -53,10 +55,20 @@ const activityColors = {
 
 export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const { profile, isManager } = useProfile();
   
   const sortedActivities = [...activities].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+  
+  // Check if user can edit/delete an activity
+  const canModify = (activity: DailyActivity) => {
+    if (isManager) return true;
+    // Sales can only modify their own sales activities, not presales
+    if (profile?.division === 'sales' && activity.category === 'presales') return false;
+    // User can modify their own activities
+    return activity.personId === profile?.id;
+  };
 
   if (activities.length === 0) {
     return (
@@ -140,44 +152,53 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit(activity)}
-                  className="h-9 w-9"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Hapus Aktivitas?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Aktivitas ini akan dihapus permanen dan tidak dapat dikembalikan.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Batal</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => onDelete(activity.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              {canModify(activity) ? (
+                <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(activity)}
+                    className="h-9 w-9"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        Hapus
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Aktivitas?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Aktivitas ini akan dihapus permanen dan tidak dapat dikembalikan.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => onDelete(activity.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Hapus
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    <Eye className="h-3 w-3 mr-1" />
+                    Lihat saja
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         );

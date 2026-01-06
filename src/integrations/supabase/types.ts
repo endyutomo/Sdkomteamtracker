@@ -192,6 +192,7 @@ export type Database = {
         Returns: boolean
       }
       is_manager: { Args: { _user_id: string }; Returns: boolean }
+      is_sales: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       activity_category: "sales" | "presales"
