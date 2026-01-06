@@ -8,6 +8,7 @@ import { PersonList } from '@/components/persons/PersonList';
 import { PersonForm } from '@/components/persons/PersonForm';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { TeamMemberList } from '@/components/profile/TeamMemberList';
+import { CompanySettingsDialog } from '@/components/company/CompanySettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePersons } from '@/hooks/usePersons';
 import { useActivities } from '@/hooks/useActivities';
 import { useProfile } from '@/hooks/useProfile';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { DailyActivity, Person } from '@/types';
 
 const Index = () => {
@@ -23,6 +25,7 @@ const Index = () => {
   const { persons, loading: personsLoading, addPerson, updatePerson, deletePerson } = usePersons();
   const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity } = useActivities();
   const { profile, allProfiles, loading: profileLoading, isManager, createProfile, updateProfile, deleteProfile, refetchAll } = useProfile();
+  const { settings: companySettings, updateSettings, uploadLogo, loading: companyLoading } = useCompanySettings();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showActivityForm, setShowActivityForm] = useState(false);
@@ -30,6 +33,7 @@ const Index = () => {
   const [editActivity, setEditActivity] = useState<DailyActivity | null>(null);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCompanySettings, setShowCompanySettings] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -131,6 +135,9 @@ const Index = () => {
         }}
         isManager={isManager}
         userDivision={profile.division}
+        companyLogo={companySettings?.logo_url}
+        companyName={companySettings?.name || 'SalesTrack'}
+        onOpenCompanySettings={() => setShowCompanySettings(true)}
       />
 
       <main className="container mx-auto px-4 py-6">
@@ -141,7 +148,7 @@ const Index = () => {
         ) : (
           <>
             {activeTab === 'dashboard' && (
-              <Dashboard activities={filteredActivities} persons={persons} />
+              <Dashboard activities={filteredActivities} persons={persons} allProfiles={allProfiles} />
             )}
 
             {activeTab === 'activities' && (
@@ -221,6 +228,7 @@ const Index = () => {
         }}
         onSubmit={handleAddActivity}
         persons={persons}
+        allProfiles={allProfiles}
         editActivity={editActivity}
       />
 
@@ -232,6 +240,14 @@ const Index = () => {
         }}
         onSubmit={handleAddPerson}
         editPerson={editPerson}
+      />
+
+      <CompanySettingsDialog
+        open={showCompanySettings}
+        onClose={() => setShowCompanySettings(false)}
+        settings={companySettings}
+        onUpdate={updateSettings}
+        uploadLogo={uploadLogo}
       />
     </div>
   );

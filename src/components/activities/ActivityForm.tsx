@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { DailyActivity, ActivityType, ActivityCategory, Person, Collaboration } from '@/types';
+import { Profile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,7 @@ interface ActivityFormProps {
   onClose: () => void;
   onSubmit: (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => void;
   persons: Person[];
+  allProfiles?: Profile[];
   editActivity?: DailyActivity | null;
 }
 
@@ -42,7 +44,7 @@ const activityTypes: { value: ActivityType; label: string }[] = [
   { value: 'other', label: 'Lainnya' },
 ];
 
-export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }: ActivityFormProps) {
+export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], editActivity }: ActivityFormProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<ActivityCategory>('sales');
   const [personId, setPersonId] = useState('');
@@ -56,12 +58,24 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
   const [photos, setPhotos] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Get profiles by division for selection
+  const salesProfiles = allProfiles.filter(p => p.division === 'sales');
+  const presalesProfiles = allProfiles.filter(p => p.division === 'presales');
+  
+  // Fall back to persons if no profiles available
   const salesPersons = persons.filter(p => p.role === 'sales');
   const presalesPersons = persons.filter(p => p.role === 'presales');
-  const otherPersons = persons.filter(p => p.role === 'other');
   
-  // Get available persons based on selected category
-  const availablePersons = category === 'sales' ? salesPersons : presalesPersons;
+  // Use profiles first, then fall back to persons
+  const availableSalesOptions = salesProfiles.length > 0 
+    ? salesProfiles.map(p => ({ id: p.id, name: p.name }))
+    : salesPersons.map(p => ({ id: p.id, name: p.name }));
+    
+  const availablePresalesOptions = presalesProfiles.length > 0
+    ? presalesProfiles.map(p => ({ id: p.id, name: p.name }))
+    : presalesPersons.map(p => ({ id: p.id, name: p.name }));
+    
+  const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
 
   useEffect(() => {
     if (editActivity) {
@@ -137,12 +151,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
       return;
     }
 
-    const selectedPerson = persons.find(p => p.id === personId);
+    const selectedOption = availableOptions.find(p => p.id === personId);
     
     let collaboration: Collaboration | undefined;
     if (hasCollaboration && activityType === 'visit' && category === 'sales') {
-      const collabPerson = persons.find(p => p.id === collaborationPersonId);
-      const collabName = collabPerson?.name || collaborationPersonName;
+      const collabOption = availablePresalesOptions.find(p => p.id === collaborationPersonId);
+      const collabName = collabOption?.name || collaborationPersonName;
       
       if (!collabName.trim()) {
         toast.error('Masukkan nama orang untuk kolaborasi');
@@ -160,7 +174,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
       date,
       category,
       personId,
-      personName: selectedPerson?.name || '',
+      personName: selectedOption?.name || '',
       activityType,
       customerName: customerName.trim(),
       notes: notes.trim(),
@@ -234,14 +248,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
                 <SelectValue placeholder={`Pilih ${category === 'sales' ? 'sales' : 'presales'} person`} />
               </SelectTrigger>
               <SelectContent>
-                {availablePersons.length === 0 ? (
+                {availableOptions.length === 0 ? (
                   <div className="p-2 text-sm text-muted-foreground">
-                    Belum ada data {category}. Tambahkan di menu Data Person.
+                    Belum ada anggota {category} terdaftar.
                   </div>
                 ) : (
-                  availablePersons.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {person.name}
+                  availableOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.name}
                     </SelectItem>
                   ))
                 )}
@@ -372,27 +386,27 @@ export function ActivityForm({ open, onClose, onSubmit, persons, editActivity }:
                         <>
                           <Select value={collaborationPersonId} onValueChange={(v) => {
                             setCollaborationPersonId(v);
-                            const person = presalesPersons.find(p => p.id === v);
-                            setCollaborationPersonName(person?.name || '');
+                            const option = availablePresalesOptions.find(p => p.id === v);
+                            setCollaborationPersonName(option?.name || '');
                           }}>
                             <SelectTrigger>
                               <SelectValue placeholder="Pilih presales" />
                             </SelectTrigger>
                             <SelectContent>
-                              {presalesPersons.length === 0 ? (
+                              {availablePresalesOptions.length === 0 ? (
                                 <div className="p-2 text-sm text-muted-foreground">
-                                  Belum ada data presales
+                                  Belum ada anggota presales terdaftar
                                 </div>
                               ) : (
-                                presalesPersons.map((person) => (
-                                  <SelectItem key={person.id} value={person.id}>
-                                    {person.name}
+                                availablePresalesOptions.map((option) => (
+                                  <SelectItem key={option.id} value={option.id}>
+                                    {option.name}
                                   </SelectItem>
                                 ))
                               )}
                             </SelectContent>
                           </Select>
-                          {presalesPersons.length === 0 && (
+                          {availablePresalesOptions.length === 0 && (
                             <Input
                               value={collaborationPersonName}
                               onChange={(e) => setCollaborationPersonName(e.target.value)}
