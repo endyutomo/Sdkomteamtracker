@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ActivityList } from '@/components/activities/ActivityList';
 import { ActivityForm } from '@/components/activities/ActivityForm';
+import { ActivityReport } from '@/components/activities/ActivityReport';
 import { PersonList } from '@/components/persons/PersonList';
 import { PersonForm } from '@/components/persons/PersonForm';
 import { ProfileForm } from '@/components/profile/ProfileForm';
@@ -207,6 +208,13 @@ const Index = () => {
                   onEdit={handleEditActivity}
                 />
               </div>
+            )}
+
+            {activeTab === 'report' && (
+              <ActivityReport 
+                activities={activities} 
+                allProfiles={allProfiles} 
+              />
             )}
 
             {activeTab === 'persons' && (

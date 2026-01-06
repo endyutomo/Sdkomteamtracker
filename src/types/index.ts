@@ -28,5 +28,8 @@ export interface DailyActivity {
   notes: string;
   collaboration?: Collaboration;
   photos?: string[]; // Base64 encoded photos for visit activity
+  latitude?: number;
+  longitude?: number;
+  locationName?: string;
   createdAt: Date;
 }
