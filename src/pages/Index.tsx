@@ -229,6 +229,7 @@ const Index = () => {
         onSubmit={handleAddActivity}
         persons={persons}
         allProfiles={allProfiles}
+        currentProfile={profile}
         editActivity={editActivity}
       />
 
