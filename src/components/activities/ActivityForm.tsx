@@ -33,6 +33,7 @@ interface ActivityFormProps {
   onSubmit: (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => void;
   persons: Person[];
   allProfiles?: Profile[];
+  currentProfile?: Profile | null;
   editActivity?: DailyActivity | null;
 }
 
@@ -44,7 +45,7 @@ const activityTypes: { value: ActivityType; label: string }[] = [
   { value: 'other', label: 'Lainnya' },
 ];
 
-export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], editActivity }: ActivityFormProps) {
+export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], currentProfile, editActivity }: ActivityFormProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<ActivityCategory>('sales');
   const [personId, setPersonId] = useState('');
@@ -58,9 +59,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [photos, setPhotos] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Get profiles by division for selection
-  const salesProfiles = allProfiles.filter(p => p.division === 'sales');
-  const presalesProfiles = allProfiles.filter(p => p.division === 'presales');
+  // Get profiles by division for selection - include managers
+  const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager');
+  const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager');
   
   // Fall back to persons if no profiles available
   const salesPersons = persons.filter(p => p.role === 'sales');
@@ -68,14 +69,32 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   
   // Use profiles first, then fall back to persons
   const availableSalesOptions = salesProfiles.length > 0 
-    ? salesProfiles.map(p => ({ id: p.id, name: p.name }))
-    : salesPersons.map(p => ({ id: p.id, name: p.name }));
+    ? salesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division }))
+    : salesPersons.map(p => ({ id: p.id, name: p.name, division: p.role }));
     
   const availablePresalesOptions = presalesProfiles.length > 0
-    ? presalesProfiles.map(p => ({ id: p.id, name: p.name }))
-    : presalesPersons.map(p => ({ id: p.id, name: p.name }));
+    ? presalesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division }))
+    : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role }));
     
   const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
+
+  // Set current user as default selection when opening form
+  useEffect(() => {
+    if (open && !editActivity && currentProfile) {
+      // Auto-select current user and set category based on their division
+      if (currentProfile.division === 'sales') {
+        setCategory('sales');
+        setPersonId(currentProfile.id);
+      } else if (currentProfile.division === 'presales') {
+        setCategory('presales');
+        setPersonId(currentProfile.id);
+      } else if (currentProfile.division === 'manager') {
+        // Manager can choose, default to sales category
+        setCategory('sales');
+        setPersonId(currentProfile.id);
+      }
+    }
+  }, [open, editActivity, currentProfile]);
 
   useEffect(() => {
     if (editActivity) {
