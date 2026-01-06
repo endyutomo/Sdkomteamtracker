@@ -12,8 +12,15 @@ import { TeamMemberList } from '@/components/profile/TeamMemberList';
 import { CompanySettingsDialog } from '@/components/company/CompanySettingsDialog';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Search, Loader2, MapPin, Phone, Mail, Users, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersons } from '@/hooks/usePersons';
 import { useActivities } from '@/hooks/useActivities';
@@ -37,6 +44,7 @@ const Index = () => {
   const [editActivity, setEditActivity] = useState<DailyActivity | null>(null);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activityTypeFilter, setActivityTypeFilter] = useState<string>('all');
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -97,17 +105,19 @@ const Index = () => {
     setShowPersonForm(true);
   };
 
-  // Filter activities by search and user division
+  // Filter activities by search, activity type, and user division
   const filteredActivities = activities.filter(a => {
     const matchesSearch = a.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.notes.toLowerCase().includes(searchQuery.toLowerCase());
     
+    const matchesType = activityTypeFilter === 'all' || a.activityType === activityTypeFilter;
+    
     // Manager can see all, sales can see their own + presales (read-only), presales see only their own
-    if (isManager) return matchesSearch;
-    if (profile?.division === 'sales') return matchesSearch; // Sales can see all (presales via RLS)
-    if (profile?.division === 'presales') return matchesSearch && a.category === 'presales';
-    return matchesSearch;
+    if (isManager) return matchesSearch && matchesType;
+    if (profile?.division === 'sales') return matchesSearch && matchesType; // Sales can see all (presales via RLS)
+    if (profile?.division === 'presales') return matchesSearch && matchesType && a.category === 'presales';
+    return matchesSearch && matchesType;
   });
 
   // Filter persons by search
@@ -185,8 +195,8 @@ const Index = () => {
                       {isManager ? 'Semua aktivitas tim' : `Aktivitas ${profile.division}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-1 sm:w-64">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="relative flex-1 sm:w-48">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         placeholder="Cari aktivitas..."
@@ -195,6 +205,43 @@ const Index = () => {
                         className="pl-9"
                       />
                     </div>
+                    <Select value={activityTypeFilter} onValueChange={setActivityTypeFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Semua Tipe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            Semua Tipe
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="visit">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            Kunjungan
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="call">
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4" />
+                            Telepon
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="email">
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4" />
+                            Email
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="meeting">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Meeting
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button onClick={() => {
                       setEditActivity(null);
                       setShowActivityForm(true);
