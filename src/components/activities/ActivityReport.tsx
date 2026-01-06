@@ -167,6 +167,8 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
       'Nama Person': activity.personName,
       'Tipe Aktivitas': activityTypeLabels[activity.activityType] || activity.activityType,
       'Nama Customer': activity.customerName,
+      'Project': activity.project || '-',
+      'Opportunity': activity.opportunity || '-',
       'Catatan': activity.notes || '-',
       'Latitude': activity.latitude || '-',
       'Longitude': activity.longitude || '-',
@@ -227,6 +229,8 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                   <TableHead>Person</TableHead>
                   <TableHead>Tipe</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Opportunity</TableHead>
                   <TableHead>Lokasi</TableHead>
                   <TableHead className="w-[80px] text-center">Detail</TableHead>
                 </TableRow>
@@ -245,6 +249,12 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                       </div>
                     </TableCell>
                     <TableCell>{activity.customerName}</TableCell>
+                    <TableCell>
+                      <span className="text-sm">{activity.project || '-'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{activity.opportunity || '-'}</span>
+                    </TableCell>
                     <TableCell>
                       {activity.locationName ? (
                         <div className="flex items-center gap-1 text-green-600">
@@ -537,6 +547,23 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                 <p className="text-sm text-muted-foreground">Customer</p>
                 <p className="font-medium">{selectedActivity.customerName}</p>
               </div>
+
+              {(selectedActivity.project || selectedActivity.opportunity) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedActivity.project && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Project</p>
+                      <p className="font-medium">{selectedActivity.project}</p>
+                    </div>
+                  )}
+                  {selectedActivity.opportunity && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Opportunity</p>
+                      <p className="font-medium">{selectedActivity.opportunity}</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {selectedActivity.notes && (
                 <div>

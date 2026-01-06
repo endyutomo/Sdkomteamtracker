@@ -33,6 +33,8 @@ export function useActivities() {
         personName: a.person_name,
         activityType: a.activity_type as ActivityType,
         customerName: a.customer_name,
+        project: a.project ?? undefined,
+        opportunity: a.opportunity ?? undefined,
         notes: a.notes || '',
         collaboration: a.collaboration as unknown as Collaboration | undefined,
         photos: a.photos || [],
@@ -69,6 +71,8 @@ export function useActivities() {
         person_name: activity.personName,
         activity_type: activity.activityType,
         customer_name: activity.customerName,
+        project: activity.project || null,
+        opportunity: activity.opportunity || null,
         notes: activity.notes,
         collaboration: activity.collaboration ? JSON.parse(JSON.stringify(activity.collaboration)) : null,
         photos: activity.photos || [],
@@ -93,6 +97,8 @@ export function useActivities() {
         personName: data.person_name,
         activityType: data.activity_type as ActivityType,
         customerName: data.customer_name,
+        project: data.project ?? undefined,
+        opportunity: data.opportunity ?? undefined,
         notes: data.notes || '',
         collaboration: data.collaboration as unknown as Collaboration | undefined,
         photos: data.photos || [],
@@ -126,6 +132,8 @@ export function useActivities() {
       if (updates.activityType !== undefined) updateData.activity_type = updates.activityType;
       if (updates.customerName !== undefined) updateData.customer_name = updates.customerName;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.project !== undefined) updateData.project = updates.project || null;
+      if (updates.opportunity !== undefined) updateData.opportunity = updates.opportunity || null;
       if (updates.collaboration !== undefined) updateData.collaboration = updates.collaboration || null;
       if (updates.photos !== undefined) updateData.photos = updates.photos;
       if (updates.latitude !== undefined) updateData.latitude = updates.latitude ?? null;

@@ -58,6 +58,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [personId, setPersonId] = useState('');
   const [activityType, setActivityType] = useState<ActivityType>('visit');
   const [customerName, setCustomerName] = useState('');
+  const [project, setProject] = useState('');
+  const [opportunity, setOpportunity] = useState('');
   const [notes, setNotes] = useState('');
   const [hasCollaboration, setHasCollaboration] = useState(false);
   const [collaborationDivision, setCollaborationDivision] = useState<'presales' | 'other'>('presales');
@@ -111,6 +113,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       setPersonId(editActivity.personId || '');
       setActivityType(editActivity.activityType);
       setCustomerName(editActivity.customerName);
+      setProject(editActivity.project || '');
+      setOpportunity(editActivity.opportunity || '');
       setNotes(editActivity.notes);
       setPhotos(editActivity.photos || []);
       if (editActivity.latitude && editActivity.longitude) {
@@ -139,6 +143,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setPersonId('');
     setActivityType('visit');
     setCustomerName('');
+    setProject('');
+    setOpportunity('');
     setNotes('');
     setHasCollaboration(false);
     setCollaborationDivision('presales');
@@ -214,6 +220,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       personName: selectedOption?.name || '',
       activityType,
       customerName: customerName.trim(),
+      project: project.trim() || undefined,
+      opportunity: opportunity.trim() || undefined,
       notes: notes.trim(),
       collaboration,
       photos: activityType === 'visit' ? photos : undefined,
@@ -327,6 +335,26 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Masukkan nama customer"
+            />
+          </div>
+
+          {/* Project */}
+          <div className="space-y-2">
+            <Label>Project</Label>
+            <Input
+              value={project}
+              onChange={(e) => setProject(e.target.value)}
+              placeholder="Nama project (opsional)"
+            />
+          </div>
+
+          {/* Opportunity */}
+          <div className="space-y-2">
+            <Label>Opportunity</Label>
+            <Input
+              value={opportunity}
+              onChange={(e) => setOpportunity(e.target.value)}
+              placeholder="Nama opportunity (opsional)"
             />
           </div>
 

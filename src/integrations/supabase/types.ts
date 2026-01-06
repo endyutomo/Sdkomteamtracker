@@ -27,9 +27,11 @@ export type Database = {
           location_name: string | null
           longitude: number | null
           notes: string | null
+          opportunity: string | null
           person_id: string | null
           person_name: string
           photos: string[] | null
+          project: string | null
           user_id: string
         }
         Insert: {
@@ -44,9 +46,11 @@ export type Database = {
           location_name?: string | null
           longitude?: number | null
           notes?: string | null
+          opportunity?: string | null
           person_id?: string | null
           person_name: string
           photos?: string[] | null
+          project?: string | null
           user_id: string
         }
         Update: {
@@ -61,9 +65,11 @@ export type Database = {
           location_name?: string | null
           longitude?: number | null
           notes?: string | null
+          opportunity?: string | null
           person_id?: string | null
           person_name?: string
           photos?: string[] | null
+          project?: string | null
           user_id?: string
         }
         Relationships: []
