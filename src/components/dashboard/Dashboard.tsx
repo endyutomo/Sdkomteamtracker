@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Activity, Users, MapPin, TrendingUp, Briefcase } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
 import { RecentActivities } from './RecentActivities';
+import { ActivityDetailDialog } from './ActivityDetailDialog';
 import { DailyActivity, Person } from '@/types';
-import { startOfDay, isToday, isThisWeek } from 'date-fns';
+import { isToday, isThisWeek } from 'date-fns';
 
 interface DashboardProps {
   activities: DailyActivity[];
@@ -11,6 +13,12 @@ interface DashboardProps {
 }
 
 export function Dashboard({ activities, persons }: DashboardProps) {
+  const [detailDialog, setDetailDialog] = useState<{
+    open: boolean;
+    title: string;
+    filterType?: 'sales' | 'presales' | 'visit' | 'collaboration';
+  }>({ open: false, title: '' });
+
   const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
   const presalesActivities = activities.filter(a => a.category === 'presales');
   
@@ -26,6 +34,10 @@ export function Dashboard({ activities, persons }: DashboardProps) {
   const salesCount = persons.filter(p => p.role === 'sales').length;
   const presalesCount = persons.filter(p => p.role === 'presales').length;
 
+  const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration') => {
+    setDetailDialog({ open: true, title, filterType });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Stats Grid */}
@@ -36,6 +48,7 @@ export function Dashboard({ activities, persons }: DashboardProps) {
           subtitle={`${weekSalesActivities.length} minggu ini`}
           icon={Activity}
           variant="primary"
+          onClick={() => openDetail('Aktivitas Sales', 'sales')}
         />
         <StatCard
           title="Aktivitas Presales"
@@ -43,6 +56,7 @@ export function Dashboard({ activities, persons }: DashboardProps) {
           subtitle={`${weekPresalesActivities.length} minggu ini`}
           icon={Briefcase}
           variant="info"
+          onClick={() => openDetail('Aktivitas Presales', 'presales')}
         />
         <StatCard
           title="Total Kunjungan"
@@ -50,6 +64,7 @@ export function Dashboard({ activities, persons }: DashboardProps) {
           subtitle="Semua waktu"
           icon={MapPin}
           variant="success"
+          onClick={() => openDetail('Total Kunjungan', 'visit')}
         />
         <StatCard
           title="Kolaborasi"
@@ -57,6 +72,7 @@ export function Dashboard({ activities, persons }: DashboardProps) {
           subtitle="Kunjungan dengan tim"
           icon={Users}
           variant="warning"
+          onClick={() => openDetail('Kolaborasi', 'collaboration')}
         />
         <StatCard
           title="Tim"
@@ -72,6 +88,14 @@ export function Dashboard({ activities, persons }: DashboardProps) {
         <ActivityChart activities={activities} />
         <RecentActivities activities={activities} />
       </div>
+
+      <ActivityDetailDialog
+        open={detailDialog.open}
+        onClose={() => setDetailDialog({ open: false, title: '' })}
+        title={detailDialog.title}
+        activities={activities}
+        filterType={detailDialog.filterType}
+      />
     </div>
   );
 }

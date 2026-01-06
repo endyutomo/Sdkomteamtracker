@@ -95,7 +95,7 @@ const Auth = () => {
             <CardDescription className="text-center">
               {isLogin 
                 ? 'Masukkan email dan password Anda' 
-                : 'Buat akun baru untuk memulai'}
+                : 'Gunakan email @sdkom.co.id untuk mendaftar'}
             </CardDescription>
           </CardHeader>
           <CardContent>

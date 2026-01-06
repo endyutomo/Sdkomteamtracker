@@ -1,20 +1,24 @@
-import { Activity, Users, LayoutDashboard, Plus, LogOut } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { DivisionType } from '@/hooks/useProfile';
 
 interface HeaderProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onAddActivity: () => void;
+  isManager?: boolean;
+  userDivision?: DivisionType;
 }
 
-export function Header({ activeTab, onTabChange, onAddActivity }: HeaderProps) {
+export function Header({ activeTab, onTabChange, onAddActivity, isManager, userDivision }: HeaderProps) {
   const { signOut, user } = useAuth();
   
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'activities', label: 'Aktivitas', icon: Activity },
-    { id: 'persons', label: 'Data Person', icon: Users },
+    { id: 'persons', label: 'Tim', icon: Users },
   ];
 
   return (
@@ -50,7 +54,14 @@ export function Header({ activeTab, onTabChange, onAddActivity }: HeaderProps) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {userDivision && (
+              <Badge variant="outline" className="hidden sm:flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {userDivision === 'manager' ? 'Manager' : userDivision === 'sales' ? 'Sales' : 'Presales'}
+                {isManager && <span className="text-xs">(Admin)</span>}
+              </Badge>
+            )}
             <Button onClick={onAddActivity} className="gap-2">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Tambah Aktivitas</span>

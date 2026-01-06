@@ -6,12 +6,15 @@ import { ActivityList } from '@/components/activities/ActivityList';
 import { ActivityForm } from '@/components/activities/ActivityForm';
 import { PersonList } from '@/components/persons/PersonList';
 import { PersonForm } from '@/components/persons/PersonForm';
+import { ProfileForm } from '@/components/profile/ProfileForm';
+import { TeamMemberList } from '@/components/profile/TeamMemberList';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersons } from '@/hooks/usePersons';
 import { useActivities } from '@/hooks/useActivities';
+import { useProfile } from '@/hooks/useProfile';
 import { DailyActivity, Person } from '@/types';
 
 const Index = () => {
@@ -19,6 +22,7 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { persons, loading: personsLoading, addPerson, updatePerson, deletePerson } = usePersons();
   const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity } = useActivities();
+  const { profile, allProfiles, loading: profileLoading, isManager, createProfile, updateProfile, deleteProfile, refetchAll } = useProfile();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showActivityForm, setShowActivityForm] = useState(false);
@@ -71,19 +75,25 @@ const Index = () => {
     setShowPersonForm(true);
   };
 
-  // Filter activities by search
-  const filteredActivities = activities.filter(a => 
-    a.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.notes.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter activities by search and user division
+  const filteredActivities = activities.filter(a => {
+    const matchesSearch = a.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.notes.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Manager can see all, others see only their division's activities
+    if (isManager) return matchesSearch;
+    if (profile?.division === 'sales') return matchesSearch && (a.category === 'sales' || !a.category);
+    if (profile?.division === 'presales') return matchesSearch && a.category === 'presales';
+    return matchesSearch;
+  });
 
   // Filter persons by search
   const filteredPersons = persons.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (authLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -93,6 +103,19 @@ const Index = () => {
 
   if (!user) {
     return null;
+  }
+
+  // Show profile form if user hasn't completed their profile
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <ProfileForm
+          open={true}
+          onSubmit={createProfile}
+          isNewUser={true}
+        />
+      </div>
+    );
   }
 
   const isLoading = personsLoading || activitiesLoading;
@@ -106,6 +129,8 @@ const Index = () => {
           setEditActivity(null);
           setShowActivityForm(true);
         }}
+        isManager={isManager}
+        userDivision={profile.division}
       />
 
       <main className="container mx-auto px-4 py-6">
@@ -116,7 +141,7 @@ const Index = () => {
         ) : (
           <>
             {activeTab === 'dashboard' && (
-              <Dashboard activities={activities} persons={persons} />
+              <Dashboard activities={filteredActivities} persons={persons} />
             )}
 
             {activeTab === 'activities' && (
@@ -124,7 +149,9 @@ const Index = () => {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">Aktivitas Harian</h2>
-                    <p className="text-muted-foreground">Kelola semua aktivitas sales team</p>
+                    <p className="text-muted-foreground">
+                      {isManager ? 'Semua aktivitas tim' : `Aktivitas ${profile.division}`}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative flex-1 sm:w-64">
@@ -158,33 +185,27 @@ const Index = () => {
               <div className="space-y-6 animate-fade-in">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground">Data Person</h2>
-                    <p className="text-muted-foreground">Kelola data sales, presales, dan tim lainnya</p>
+                    <h2 className="text-2xl font-bold text-foreground">Data Anggota Tim</h2>
+                    <p className="text-muted-foreground">Semua anggota yang sudah terdaftar</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-1 sm:w-64">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Cari person..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                    <Button onClick={() => {
-                      setEditPerson(null);
-                      setShowPersonForm(true);
-                    }} className="gap-2 shrink-0">
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Tambah</span>
-                    </Button>
+                  <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari anggota..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
                   </div>
                 </div>
                 
-                <PersonList 
-                  persons={filteredPersons}
-                  onDelete={handleDeletePerson}
-                  onEdit={handleEditPerson}
+                <TeamMemberList 
+                  profiles={allProfiles.filter(p => 
+                    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+                  )}
+                  isManager={isManager}
+                  onUpdate={updateProfile}
+                  onDelete={deleteProfile}
                 />
               </div>
             )}
