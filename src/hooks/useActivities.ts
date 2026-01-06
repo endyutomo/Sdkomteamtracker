@@ -1,0 +1,162 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { DailyActivity, ActivityType, ActivityCategory, Collaboration } from '@/types';
+import { useAuth } from './useAuth';
+import { toast } from 'sonner';
+import type { TablesInsert } from '@/integrations/supabase/types';
+
+export function useActivities() {
+  const [activities, setActivities] = useState<DailyActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const fetchActivities = useCallback(async () => {
+    if (!user) {
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      const mapped: DailyActivity[] = (data || []).map((a) => ({
+        id: a.id,
+        date: new Date(a.date),
+        category: a.category as ActivityCategory,
+        personId: a.person_id || '',
+        personName: a.person_name,
+        activityType: a.activity_type as ActivityType,
+        customerName: a.customer_name,
+        notes: a.notes || '',
+        collaboration: a.collaboration as unknown as Collaboration | undefined,
+        photos: a.photos || [],
+        createdAt: new Date(a.created_at),
+      }));
+
+      setActivities(mapped);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      toast.error('Gagal memuat data aktivitas');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
+
+  const addActivity = async (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => {
+    if (!user) return;
+
+    try {
+      const insertData: TablesInsert<'activities'> = {
+        user_id: user.id,
+        date: activity.date instanceof Date 
+          ? activity.date.toISOString().split('T')[0] 
+          : String(activity.date),
+        category: activity.category,
+        person_id: activity.personId || null,
+        person_name: activity.personName,
+        activity_type: activity.activityType,
+        customer_name: activity.customerName,
+        notes: activity.notes,
+        collaboration: activity.collaboration ? JSON.parse(JSON.stringify(activity.collaboration)) : null,
+        photos: activity.photos || [],
+      };
+
+      const { data, error } = await supabase
+        .from('activities')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newActivity: DailyActivity = {
+        id: data.id,
+        date: new Date(data.date),
+        category: data.category as ActivityCategory,
+        personId: data.person_id || '',
+        personName: data.person_name,
+        activityType: data.activity_type as ActivityType,
+        customerName: data.customer_name,
+        notes: data.notes || '',
+        collaboration: data.collaboration as unknown as Collaboration | undefined,
+        photos: data.photos || [],
+        createdAt: new Date(data.created_at),
+      };
+
+      setActivities((prev) => [newActivity, ...prev]);
+      toast.success('Aktivitas berhasil ditambahkan');
+      return newActivity;
+    } catch (error) {
+      console.error('Error adding activity:', error);
+      toast.error('Gagal menambahkan aktivitas');
+    }
+  };
+
+  const updateActivity = async (id: string, updates: Partial<Omit<DailyActivity, 'id' | 'createdAt'>>) => {
+    try {
+      const updateData: Record<string, unknown> = {};
+      
+      if (updates.date !== undefined) {
+        updateData.date = updates.date instanceof Date 
+          ? updates.date.toISOString().split('T')[0] 
+          : updates.date;
+      }
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.personId !== undefined) updateData.person_id = updates.personId || null;
+      if (updates.personName !== undefined) updateData.person_name = updates.personName;
+      if (updates.activityType !== undefined) updateData.activity_type = updates.activityType;
+      if (updates.customerName !== undefined) updateData.customer_name = updates.customerName;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.collaboration !== undefined) updateData.collaboration = updates.collaboration || null;
+      if (updates.photos !== undefined) updateData.photos = updates.photos;
+
+      const { error } = await supabase
+        .from('activities')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setActivities((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
+      );
+      toast.success('Aktivitas berhasil diperbarui');
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      toast.error('Gagal memperbarui aktivitas');
+    }
+  };
+
+  const deleteActivity = async (id: string) => {
+    try {
+      const { error } = await supabase.from('activities').delete().eq('id', id);
+
+      if (error) throw error;
+
+      setActivities((prev) => prev.filter((a) => a.id !== id));
+      toast.success('Aktivitas berhasil dihapus');
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      toast.error('Gagal menghapus aktivitas');
+    }
+  };
+
+  return {
+    activities,
+    loading,
+    addActivity,
+    updateActivity,
+    deleteActivity,
+    refetch: fetchActivities,
+  };
+}

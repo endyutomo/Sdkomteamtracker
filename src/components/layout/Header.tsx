@@ -1,5 +1,6 @@
-import { Activity, Users, LayoutDashboard, Plus } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   activeTab: string;
@@ -8,6 +9,8 @@ interface HeaderProps {
 }
 
 export function Header({ activeTab, onTabChange, onAddActivity }: HeaderProps) {
+  const { signOut, user } = useAuth();
+  
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'activities', label: 'Aktivitas', icon: Activity },
@@ -47,10 +50,18 @@ export function Header({ activeTab, onTabChange, onAddActivity }: HeaderProps) {
             </nav>
           </div>
 
-          <Button onClick={onAddActivity} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Tambah Aktivitas</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onAddActivity} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Tambah Aktivitas</span>
+            </Button>
+            
+            {user && (
+              <Button variant="ghost" size="icon" onClick={signOut} title="Keluar">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Mobile Navigation */}

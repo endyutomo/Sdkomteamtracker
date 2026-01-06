@@ -14,7 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          category: Database["public"]["Enums"]["activity_category"]
+          collaboration: Json | null
+          created_at: string
+          customer_name: string
+          date: string
+          id: string
+          notes: string | null
+          person_id: string | null
+          person_name: string
+          photos: string[] | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          category: Database["public"]["Enums"]["activity_category"]
+          collaboration?: Json | null
+          created_at?: string
+          customer_name: string
+          date?: string
+          id?: string
+          notes?: string | null
+          person_id?: string | null
+          person_name: string
+          photos?: string[] | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          category?: Database["public"]["Enums"]["activity_category"]
+          collaboration?: Json | null
+          created_at?: string
+          customer_name?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          person_id?: string | null
+          person_name?: string
+          photos?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persons: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["person_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          role?: Database["public"]["Enums"]["person_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["person_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +99,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      activity_category: "sales" | "presales"
+      activity_type: "visit" | "call" | "email" | "meeting" | "other"
+      person_role: "sales" | "presales" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +228,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_category: ["sales", "presales"],
+      activity_type: ["visit", "call", "email", "meeting", "other"],
+      person_role: ["sales", "presales", "other"],
+    },
   },
 } as const
