@@ -1,4 +1,4 @@
-import { Activity, Users, LayoutDashboard, Plus, LogOut, User } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,9 +10,21 @@ interface HeaderProps {
   onAddActivity: () => void;
   isManager?: boolean;
   userDivision?: DivisionType;
+  companyLogo?: string | null;
+  companyName?: string;
+  onOpenCompanySettings?: () => void;
 }
 
-export function Header({ activeTab, onTabChange, onAddActivity, isManager, userDivision }: HeaderProps) {
+export function Header({ 
+  activeTab, 
+  onTabChange, 
+  onAddActivity, 
+  isManager, 
+  userDivision,
+  companyLogo,
+  companyName = 'SalesTrack',
+  onOpenCompanySettings
+}: HeaderProps) {
   const { signOut, user } = useAuth();
   
   const tabs = [
@@ -27,13 +39,32 @@ export function Header({ activeTab, onTabChange, onAddActivity, isManager, userD
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                <Activity className="h-5 w-5 text-primary-foreground" />
-              </div>
+              {companyLogo ? (
+                <img 
+                  src={companyLogo} 
+                  alt={companyName}
+                  className="h-10 w-10 rounded-lg object-contain bg-background border border-border"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
+                  <Activity className="h-5 w-5 text-primary-foreground" />
+                </div>
+              )}
               <div>
-                <h1 className="text-lg font-bold text-foreground">SalesTrack</h1>
+                <h1 className="text-lg font-bold text-foreground">{companyName}</h1>
                 <p className="text-xs text-muted-foreground">Monitoring Activity</p>
               </div>
+              {isManager && onOpenCompanySettings && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenCompanySettings}
+                  title="Pengaturan Perusahaan"
+                  className="ml-1"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             
             <nav className="hidden md:flex items-center gap-1">

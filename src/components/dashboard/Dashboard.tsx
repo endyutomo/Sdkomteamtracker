@@ -4,20 +4,25 @@ import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
 import { RecentActivities } from './RecentActivities';
 import { ActivityDetailDialog } from './ActivityDetailDialog';
+import { TeamDetailDialog } from './TeamDetailDialog';
 import { DailyActivity, Person } from '@/types';
+import { Profile } from '@/hooks/useProfile';
 import { isToday, isThisWeek } from 'date-fns';
 
 interface DashboardProps {
   activities: DailyActivity[];
   persons: Person[];
+  allProfiles: Profile[];
 }
 
-export function Dashboard({ activities, persons }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
     filterType?: 'sales' | 'presales' | 'visit' | 'collaboration';
   }>({ open: false, title: '' });
+
+  const [teamDialog, setTeamDialog] = useState(false);
 
   const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
   const presalesActivities = activities.filter(a => a.category === 'presales');
@@ -31,8 +36,8 @@ export function Dashboard({ activities, persons }: DashboardProps) {
   const visitActivities = activities.filter(a => a.activityType === 'visit');
   const collaborationActivities = activities.filter(a => a.collaboration);
   
-  const salesCount = persons.filter(p => p.role === 'sales').length;
-  const presalesCount = persons.filter(p => p.role === 'presales').length;
+  const salesCount = allProfiles.filter(p => p.division === 'sales').length;
+  const presalesCount = allProfiles.filter(p => p.division === 'presales').length;
 
   const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration') => {
     setDetailDialog({ open: true, title, filterType });
@@ -80,6 +85,7 @@ export function Dashboard({ activities, persons }: DashboardProps) {
           subtitle={`${salesCount} sales, ${presalesCount} presales`}
           icon={TrendingUp}
           variant="primary"
+          onClick={() => setTeamDialog(true)}
         />
       </div>
 
@@ -95,6 +101,12 @@ export function Dashboard({ activities, persons }: DashboardProps) {
         title={detailDialog.title}
         activities={activities}
         filterType={detailDialog.filterType}
+      />
+
+      <TeamDetailDialog
+        open={teamDialog}
+        onClose={() => setTeamDialog(false)}
+        profiles={allProfiles}
       />
     </div>
   );
