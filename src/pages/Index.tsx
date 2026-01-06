@@ -101,9 +101,9 @@ const Index = () => {
       a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.notes.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Manager can see all, others see only their division's activities
+    // Manager can see all, sales can see their own + presales (read-only), presales see only their own
     if (isManager) return matchesSearch;
-    if (profile?.division === 'sales') return matchesSearch && (a.category === 'sales' || !a.category);
+    if (profile?.division === 'sales') return matchesSearch; // Sales can see all (presales via RLS)
     if (profile?.division === 'presales') return matchesSearch && a.category === 'presales';
     return matchesSearch;
   });
