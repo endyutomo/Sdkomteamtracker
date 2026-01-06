@@ -13,6 +13,7 @@ interface HeaderProps {
   companyLogo?: string | null;
   companyName?: string;
   onOpenCompanySettings?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function Header({ 
@@ -23,7 +24,8 @@ export function Header({
   userDivision,
   companyLogo,
   companyName = 'SalesTrack',
-  onOpenCompanySettings
+  onOpenCompanySettings,
+  onOpenSettings
 }: HeaderProps) {
   const { signOut, user } = useAuth();
   
@@ -98,6 +100,12 @@ export function Header({
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Tambah Aktivitas</span>
             </Button>
+            
+            {onOpenSettings && (
+              <Button variant="ghost" size="icon" onClick={onOpenSettings} title="Pengaturan">
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
             
             {user && (
               <Button variant="ghost" size="icon" onClick={signOut} title="Keluar">

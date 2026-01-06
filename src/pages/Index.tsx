@@ -10,6 +10,7 @@ import { PersonForm } from '@/components/persons/PersonForm';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { TeamMemberList } from '@/components/profile/TeamMemberList';
 import { CompanySettingsDialog } from '@/components/company/CompanySettingsDialog';
+import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ const Index = () => {
   const [editPerson, setEditPerson] = useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompanySettings, setShowCompanySettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -154,6 +156,7 @@ const Index = () => {
         companyLogo={companySettings?.logo_url}
         companyName={companySettings?.name || 'SalesTrack'}
         onOpenCompanySettings={() => setShowCompanySettings(true)}
+        onOpenSettings={() => setShowSettings(true)}
       />
 
       <main className="container mx-auto px-4 py-6">
@@ -278,6 +281,13 @@ const Index = () => {
         settings={companySettings}
         onUpdate={updateSettings}
         uploadLogo={uploadLogo}
+      />
+
+      <SettingsDialog
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        profile={profile}
+        onUpdateProfile={updateProfile}
       />
     </div>
   );
