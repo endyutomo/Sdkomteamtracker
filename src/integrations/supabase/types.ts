@@ -32,6 +32,7 @@ export type Database = {
           person_name: string
           photos: string[] | null
           project: string | null
+          reminder_at: string | null
           user_id: string
         }
         Insert: {
@@ -51,6 +52,7 @@ export type Database = {
           person_name: string
           photos?: string[] | null
           project?: string | null
+          reminder_at?: string | null
           user_id: string
         }
         Update: {
@@ -70,6 +72,7 @@ export type Database = {
           person_name?: string
           photos?: string[] | null
           project?: string | null
+          reminder_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -106,6 +109,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          activity_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       persons: {
         Row: {

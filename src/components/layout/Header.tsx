@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { DivisionType } from '@/hooks/useProfile';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface HeaderProps {
   activeTab: string;
@@ -100,6 +101,8 @@ export function Header({
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Tambah Aktivitas</span>
             </Button>
+            
+            <NotificationBell />
             
             {onOpenSettings && (
               <Button variant="ghost" size="icon" onClick={onOpenSettings} title="Pengaturan">

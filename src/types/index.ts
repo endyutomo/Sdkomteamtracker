@@ -33,5 +33,6 @@ export interface DailyActivity {
   latitude?: number;
   longitude?: number;
   locationName?: string;
+  reminderAt?: Date | null;
   createdAt: Date;
 }
