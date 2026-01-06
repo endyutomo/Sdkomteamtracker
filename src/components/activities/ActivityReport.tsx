@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DailyActivity } from '@/types';
 import { Profile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -22,9 +31,12 @@ import {
   Users, 
   Calendar,
   Briefcase,
-  Eye
+  Eye,
+  Search,
+  X,
+  CalendarIcon
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import {
@@ -33,6 +45,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface ActivityReportProps {
   activities: DailyActivity[];
@@ -55,16 +70,89 @@ const activityTypeIcons: Record<string, React.ReactNode> = {
   other: <Calendar className="h-4 w-4" />,
 };
 
+// Generate month options
+const months = [
+  { value: '0', label: 'Januari' },
+  { value: '1', label: 'Februari' },
+  { value: '2', label: 'Maret' },
+  { value: '3', label: 'April' },
+  { value: '4', label: 'Mei' },
+  { value: '5', label: 'Juni' },
+  { value: '6', label: 'Juli' },
+  { value: '7', label: 'Agustus' },
+  { value: '8', label: 'September' },
+  { value: '9', label: 'Oktober' },
+  { value: '10', label: 'November' },
+  { value: '11', label: 'Desember' },
+];
+
+// Generate year options (last 5 years)
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => ({
+  value: String(currentYear - i),
+  label: String(currentYear - i),
+}));
+
 export function ActivityReport({ activities, allProfiles }: ActivityReportProps) {
   const [selectedActivity, setSelectedActivity] = useState<DailyActivity | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'date' | 'month' | 'year'>('all');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+
+  // Filter activities based on search and date filters
+  const filteredActivities = useMemo(() => {
+    return activities.filter(activity => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        activity.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        activity.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        activity.notes.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        activity.locationName?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // Date filter
+      const activityDate = new Date(activity.date);
+      
+      if (filterType === 'date' && selectedDate) {
+        const activityDateStr = format(activityDate, 'yyyy-MM-dd');
+        const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+        return activityDateStr === selectedDateStr;
+      }
+      
+      if (filterType === 'month' && selectedMonth !== '' && selectedYear) {
+        const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
+        const monthEnd = endOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
+        return isWithinInterval(activityDate, { start: monthStart, end: monthEnd });
+      }
+      
+      if (filterType === 'year' && selectedYear) {
+        const yearStart = startOfYear(new Date(parseInt(selectedYear), 0));
+        const yearEnd = endOfYear(new Date(parseInt(selectedYear), 0));
+        return isWithinInterval(activityDate, { start: yearStart, end: yearEnd });
+      }
+
+      return true;
+    });
+  }, [activities, searchQuery, filterType, selectedDate, selectedMonth, selectedYear]);
 
   // Group activities by division
-  const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
-  const presalesActivities = activities.filter(a => a.category === 'presales');
+  const salesActivities = filteredActivities.filter(a => a.category === 'sales' || !a.category);
+  const presalesActivities = filteredActivities.filter(a => a.category === 'presales');
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterType('all');
+    setSelectedDate(undefined);
+    setSelectedMonth('');
+    setSelectedYear(String(currentYear));
+  };
 
   // Export to Excel
   const exportToExcel = (division: 'all' | 'sales' | 'presales') => {
-    let dataToExport = activities;
+    let dataToExport = filteredActivities;
     
     if (division === 'sales') {
       dataToExport = salesActivities;
@@ -200,12 +288,166 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         <Button
           onClick={() => exportToExcel('all')}
           className="gap-2"
-          disabled={activities.length === 0}
+          disabled={filteredActivities.length === 0}
         >
           <Download className="h-4 w-4" />
           Export Semua Data
         </Button>
       </div>
+
+      {/* Search and Filter Section */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari customer, person, catatan, atau lokasi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Filter Type Selector */}
+            <div className="flex flex-wrap gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Filter Waktu</Label>
+                <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Pilih filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Waktu</SelectItem>
+                    <SelectItem value="date">Tanggal</SelectItem>
+                    <SelectItem value="month">Bulan</SelectItem>
+                    <SelectItem value="year">Tahun</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Picker */}
+              {filterType === 'date' && (
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Pilih Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-[200px] justify-start text-left font-normal',
+                          !selectedDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, 'dd MMMM yyyy', { locale: id }) : 'Pilih tanggal'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              {/* Month & Year Picker */}
+              {filterType === 'month' && (
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Bulan</Label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Pilih bulan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map(month => (
+                          <SelectItem key={month.value} value={month.value}>
+                            {month.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Tahun</Label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Tahun" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map(year => (
+                          <SelectItem key={year.value} value={year.value}>
+                            {year.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* Year Only Picker */}
+              {filterType === 'year' && (
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Tahun</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue placeholder="Tahun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map(year => (
+                        <SelectItem key={year.value} value={year.value}>
+                          {year.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Clear Filter Button */}
+              {(searchQuery || filterType !== 'all') && (
+                <div className="space-y-2">
+                  <Label className="text-sm text-transparent">Clear</Label>
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+                    <X className="h-4 w-4" />
+                    Reset Filter
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Active Filter Info */}
+            {(searchQuery || filterType !== 'all') && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Menampilkan {filteredActivities.length} dari {activities.length} aktivitas</span>
+                {filterType === 'date' && selectedDate && (
+                  <Badge variant="outline">
+                    {format(selectedDate, 'dd MMMM yyyy', { locale: id })}
+                  </Badge>
+                )}
+                {filterType === 'month' && selectedMonth !== '' && (
+                  <Badge variant="outline">
+                    {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                  </Badge>
+                )}
+                {filterType === 'year' && (
+                  <Badge variant="outline">
+                    Tahun {selectedYear}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
