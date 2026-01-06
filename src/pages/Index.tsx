@@ -23,9 +23,11 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { persons, loading: personsLoading, addPerson, updatePerson, deletePerson } = usePersons();
-  const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity } = useActivities();
+  const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity, refetch: refetchActivities } = useActivities();
   const { profile, allProfiles, loading: profileLoading, isManager, createProfile, updateProfile, deleteProfile, refetchAll } = useProfile();
   const { settings: companySettings, updateSettings, uploadLogo, loading: companyLoading } = useCompanySettings();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showActivityForm, setShowActivityForm] = useState(false);
@@ -40,6 +42,19 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refetchActivities(),
+        refetchAll()
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Activity handlers
   const handleAddActivity = async (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => {
@@ -148,7 +163,13 @@ const Index = () => {
         ) : (
           <>
             {activeTab === 'dashboard' && (
-              <Dashboard activities={filteredActivities} persons={persons} allProfiles={allProfiles} />
+              <Dashboard 
+                activities={filteredActivities} 
+                persons={persons} 
+                allProfiles={allProfiles}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+              />
             )}
 
             {activeTab === 'activities' && (
