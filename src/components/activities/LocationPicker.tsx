@@ -15,9 +15,10 @@ interface LocationData {
 interface LocationPickerProps {
   value?: LocationData;
   onChange: (location: LocationData | undefined) => void;
+  required?: boolean;
 }
 
-export function LocationPicker({ value, onChange }: LocationPickerProps) {
+export function LocationPicker({ value, onChange, required = false }: LocationPickerProps) {
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +169,9 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
     <div className="space-y-3 rounded-lg border border-border p-4">
       <div className="flex items-center gap-2">
         <MapPin className="h-4 w-4 text-muted-foreground" />
-        <Label className="font-medium">Lokasi Check-in</Label>
+        <Label className="font-medium">
+          Lokasi Check-in {required && <span className="text-destructive">*</span>}
+        </Label>
       </div>
 
       {!value ? (
