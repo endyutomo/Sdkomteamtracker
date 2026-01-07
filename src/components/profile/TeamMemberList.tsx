@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Profile, DivisionType } from '@/hooks/useProfile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, User, Briefcase, Users } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Edit, Trash2, User, Briefcase, Users, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TeamMemberListProps {
   profiles: Profile[];
@@ -30,6 +32,23 @@ export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: Team
   const [editName, setEditName] = useState('');
   const [editJabatan, setEditJabatan] = useState('');
   const [editDivision, setEditDivision] = useState<DivisionType>('sales');
+  const [superadminIds, setSuperadminIds] = useState<string[]>([]);
+
+  // Fetch superadmin IDs
+  useEffect(() => {
+    const fetchSuperadmins = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'superadmin');
+      if (data) {
+        setSuperadminIds(data.map((r) => r.user_id));
+      }
+    };
+    fetchSuperadmins();
+  }, []);
+
+  const isUserSuperadmin = (userId: string) => superadminIds.includes(userId);
 
   const handleEditClick = (profile: Profile) => {
     setEditingProfile(profile);
@@ -89,11 +108,31 @@ export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: Team
                       className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center relative">
                           <User className="h-5 w-5 text-primary" />
+                          {isUserSuperadmin(profile.user_id) && (
+                            <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center">
+                              <Shield className="h-2.5 w-2.5 text-white" />
+                            </div>
+                          )}
                         </div>
                         <div>
-                          <p className="font-medium">{profile.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{profile.name}</p>
+                            {isUserSuperadmin(profile.user_id) && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="border-amber-500 text-amber-600 text-[10px]">
+                                    <Shield className="h-2.5 w-2.5 mr-1" />
+                                    Superadmin
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <span className="text-xs">Administrator sistem dengan akses penuh</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {profile.jabatan || 'Tidak ada jabatan'}
                           </p>
