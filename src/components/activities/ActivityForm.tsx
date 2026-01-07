@@ -23,10 +23,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Users, Camera, X, ImagePlus, Bell } from 'lucide-react';
+import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { LocationPicker } from './LocationPicker';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LocationData {
   latitude: number;
@@ -70,11 +71,31 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [hasReminder, setHasReminder] = useState(false);
   const [reminderDate, setReminderDate] = useState<Date | undefined>();
   const [reminderTime, setReminderTime] = useState('09:00');
+  const [superadminIds, setSuperadminIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Get profiles by division for selection - include managers
-  const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager');
-  const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager');
+  // Fetch superadmin IDs
+  useEffect(() => {
+    const fetchSuperadmins = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'superadmin');
+      if (data) {
+        setSuperadminIds(data.map((r) => r.user_id));
+      }
+    };
+    fetchSuperadmins();
+  }, []);
+
+  const isUserSuperadmin = (userId: string) => superadminIds.includes(userId);
+
+  // Get superadmin profiles
+  const superadminProfiles = allProfiles.filter(p => superadminIds.includes(p.user_id));
+
+  // Get profiles by division for selection - include managers and superadmins
+  const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager' || superadminIds.includes(p.user_id));
+  const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager' || superadminIds.includes(p.user_id));
   
   // Fall back to persons if no profiles available
   const salesPersons = persons.filter(p => p.role === 'sales');
@@ -82,12 +103,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   
   // Use profiles first, then fall back to persons
   const availableSalesOptions = salesProfiles.length > 0 
-    ? salesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division }))
-    : salesPersons.map(p => ({ id: p.id, name: p.name, division: p.role }));
+    ? salesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division, user_id: p.user_id }))
+    : salesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
     
   const availablePresalesOptions = presalesProfiles.length > 0
-    ? presalesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division }))
-    : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role }));
+    ? presalesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division, user_id: p.user_id }))
+    : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
     
   const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
 
@@ -332,7 +353,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 ) : (
                   availableOptions.map((option) => (
                     <SelectItem key={option.id} value={option.id}>
-                      {option.name}
+                      <div className="flex items-center gap-2">
+                        {option.name}
+                        {option.user_id && isUserSuperadmin(option.user_id) && (
+                          <Shield className="h-3 w-3 text-amber-500" />
+                        )}
+                      </div>
                     </SelectItem>
                   ))
                 )}
@@ -509,7 +535,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                               ) : (
                                 (category === 'sales' ? availablePresalesOptions : availableSalesOptions).map((option) => (
                                   <SelectItem key={option.id} value={option.id}>
-                                    {option.name}
+                                    <div className="flex items-center gap-2">
+                                      {option.name}
+                                      {option.user_id && isUserSuperadmin(option.user_id) && (
+                                        <Shield className="h-3 w-3 text-amber-500" />
+                                      )}
+                                    </div>
                                   </SelectItem>
                                 ))
                               )}
