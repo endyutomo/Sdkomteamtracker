@@ -423,7 +423,7 @@ export function ChatPanel() {
                     {/* Always show sender name for all messages */}
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className="text-xs text-muted-foreground font-medium">
-                        {isOwnMessage ? (profile?.name || 'Anda') : msg.sender_name}
+                        {msg.sender_name || profile?.name || 'Anda'}
                       </span>
                       {isSenderSuperadmin && (
                         <Tooltip>
