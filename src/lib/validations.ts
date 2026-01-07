@@ -42,6 +42,7 @@ export const companySettingsSchema = z.object({
   address: z.string().trim().max(500, 'Alamat maksimal 500 karakter').optional().nullable(),
   phone: z.string().trim().max(20, 'Nomor telepon maksimal 20 karakter').optional().nullable(),
   email: z.string().trim().email('Format email tidak valid').max(255).optional().nullable().or(z.literal('')),
+  logo_url: z.string().url('URL logo tidak valid').max(1000).optional().nullable(),
 });
 
 // Type exports
