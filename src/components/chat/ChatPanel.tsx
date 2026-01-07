@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings, Check, CheckCheck, Shield } from 'lucide-react';
+import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings, Check, CheckCheck, Shield, Smile, Image, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -30,6 +30,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 export function ChatPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +40,12 @@ export function ChatPanel() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [superadminIds, setSuperadminIds] = useState<string[]>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { user } = useAuth();
   const { profile, allProfiles, isSuperadmin } = useProfile();
@@ -118,11 +126,89 @@ export function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle emoji select
+  const handleEmojiSelect = (emoji: any) => {
+    setNewMessage((prev) => prev + emoji.native);
+    setShowEmojiPicker(false);
+  };
+
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File terlalu besar',
+          description: 'Maksimal ukuran file adalah 5MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setSelectedImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviewImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload image to Supabase Storage
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('chat-images')
+      .upload(fileName, file);
+    
+    if (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Gagal upload gambar',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    }
+    
+    const { data: publicUrl } = supabase.storage
+      .from('chat-images')
+      .getPublicUrl(data.path);
+    
+    return publicUrl.publicUrl;
+  };
+
+  // Cancel image preview
+  const cancelImagePreview = () => {
+    setPreviewImage(null);
+    setSelectedImageFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeConversation || !newMessage.trim()) return;
-    await sendMessage(activeConversation.id, newMessage);
-    setNewMessage('');
+    if (!activeConversation || (!newMessage.trim() && !selectedImageFile)) return;
+    
+    setUploadingImage(true);
+    
+    try {
+      let imageUrl: string | undefined;
+      
+      if (selectedImageFile) {
+        imageUrl = (await uploadImage(selectedImageFile)) || undefined;
+      }
+      
+      await sendMessage(activeConversation.id, newMessage, imageUrl);
+      setNewMessage('');
+      cancelImagePreview();
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleStartDirectChat = async (userId: string) => {
@@ -309,6 +395,9 @@ export function ChatPanel() {
                       </AvatarFallback>
                     </Avatar>
                     <span>{otherUser.name}</span>
+                    {isUserSuperadmin(otherUser.user_id) && (
+                      <Shield className="h-3 w-3 text-amber-500" />
+                    )}
                     <Badge variant="secondary" className="ml-auto text-xs">
                       {otherUser.division === 'manager' ? 'Manager' : otherUser.division === 'sales' ? 'Sales' : 'Presales'}
                     </Badge>
@@ -366,7 +455,18 @@ export function ChatPanel() {
                           : 'bg-muted rounded-bl-md'
                       }`}
                     >
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                      {msg.image_url && (
+                        <a href={msg.image_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                          <img 
+                            src={msg.image_url} 
+                            alt="Chat image" 
+                            className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        </a>
+                      )}
+                      {msg.content && msg.content !== '📷 Gambar' && (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-1 px-1">
                       <span className="text-[10px] text-muted-foreground">
@@ -412,9 +512,69 @@ export function ChatPanel() {
             </div>
           </ScrollArea>
 
+          {/* Image Preview */}
+          {previewImage && (
+            <div className="p-2 border-t border-border bg-muted/30">
+              <div className="relative inline-block">
+                <img src={previewImage} alt="Preview" className="h-20 rounded-lg object-cover" />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={cancelImagePreview}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Message Input */}
           <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-border bg-background/50 backdrop-blur-sm">
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {/* Emoji Picker */}
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-9 w-9"
+                  >
+                    <Smile className="h-5 w-5 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="start" className="w-auto p-0 border-none shadow-xl">
+                  <Picker 
+                    data={data} 
+                    onEmojiSelect={handleEmojiSelect}
+                    theme="auto"
+                    locale="id"
+                    previewPosition="none"
+                    skinTonePosition="none"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Image Upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-9 w-9"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+              >
+                <Image className="h-5 w-5 text-muted-foreground" />
+              </Button>
+
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
@@ -426,14 +586,19 @@ export function ChatPanel() {
                     handleSendMessage(e);
                   }
                 }}
+                disabled={uploadingImage}
               />
               <Button 
                 type="submit" 
                 size="icon" 
-                disabled={!newMessage.trim()}
+                disabled={(!newMessage.trim() && !selectedImageFile) || uploadingImage}
                 className="rounded-full shrink-0 transition-transform hover:scale-105 active:scale-95"
               >
-                <Send className="h-4 w-4" />
+                {uploadingImage ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </form>
@@ -521,7 +686,7 @@ export function ChatPanel() {
                       </div>
                       {conv.last_message && (
                         <p className="text-xs text-muted-foreground truncate">
-                          {conv.last_message.content}
+                          {conv.last_message.image_url ? '📷 Gambar' : conv.last_message.content}
                         </p>
                       )}
                     </div>
