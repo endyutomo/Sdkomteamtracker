@@ -22,6 +22,7 @@ export function useProfile() {
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isManager, setIsManager] = useState(false);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     if (!user) {
@@ -42,9 +43,19 @@ export function useProfile() {
       if (data) {
         setProfile(data as Profile);
         setIsManager(data.division === 'manager');
+        
+        // Check if user is superadmin
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        setIsSuperadmin(roleData?.role === 'superadmin');
       } else {
         setProfile(null);
         setIsManager(false);
+        setIsSuperadmin(false);
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
@@ -207,6 +218,7 @@ export function useProfile() {
     allProfiles,
     loading,
     isManager,
+    isSuperadmin,
     createProfile,
     updateProfile,
     deleteProfile,

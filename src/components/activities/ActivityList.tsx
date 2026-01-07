@@ -55,7 +55,7 @@ const activityColors = {
 
 export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const { profile, isManager } = useProfile();
+  const { profile, isManager, isSuperadmin } = useProfile();
   
   const sortedActivities = [...activities].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -63,7 +63,13 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
   
   // Check if user can edit/delete an activity
   const canModify = (activity: DailyActivity) => {
-    if (isManager) return true;
+    // Superadmin can modify all activities
+    if (isSuperadmin) return true;
+    // Regular manager can only view, not edit others
+    if (isManager && !isSuperadmin) {
+      // Manager can edit their own activities only
+      return activity.personId === profile?.id;
+    }
     // Sales can only modify their own sales activities, not presales
     if (profile?.division === 'sales' && activity.category === 'presales') return false;
     // Presales can only modify their own presales activities, not sales
