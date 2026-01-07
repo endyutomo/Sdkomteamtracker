@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings, Check, CheckCheck } from 'lucide-react';
+import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings, Check, CheckCheck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,16 +29,18 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 export function ChatPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
+  const [superadminIds, setSuperadminIds] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { user } = useAuth();
-  const { profile, allProfiles } = useProfile();
+  const { profile, allProfiles, isSuperadmin } = useProfile();
   const { settings: chatSettings, toggleSound } = useChatSettings();
   const {
     conversations,
@@ -55,6 +57,23 @@ export function ChatPanel() {
     getConversationParticipantsCount,
     allProfiles: chatAllProfiles,
   } = useChat(chatSettings.soundEnabled);
+
+  // Fetch superadmin IDs
+  useEffect(() => {
+    const fetchSuperadmins = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'superadmin');
+      if (data) {
+        setSuperadminIds(data.map((r) => r.user_id));
+      }
+    };
+    fetchSuperadmins();
+  }, []);
+
+  // Check if user is superadmin
+  const isUserSuperadmin = (userId: string) => superadminIds.includes(userId);
 
   // Get read status for a message
   const getReadStatus = (msg: Message) => {
@@ -164,13 +183,13 @@ export function ChatPanel() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
         <Button
           onClick={handleOpenChat}
-          className="h-14 w-14 rounded-full shadow-lg relative"
+          className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg relative transition-transform hover:scale-105 active:scale-95"
           size="icon"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium animate-pulse">
               {unreadCount > 9 ? '9+' : unreadCount}
@@ -182,7 +201,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-card border border-border rounded-xl shadow-elevated z-50 flex flex-col overflow-hidden">
+    <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 w-full sm:w-96 h-[100dvh] sm:h-[500px] bg-card border-t sm:border border-border sm:rounded-xl shadow-elevated z-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
         {activeConversation ? (
@@ -305,24 +324,51 @@ export function ChatPanel() {
             <div className="space-y-3">
               {messages.map((msg) => {
                 const readStatus = getReadStatus(msg);
+                const isSenderSuperadmin = isUserSuperadmin(msg.sender_id);
+                const isOwnMessage = msg.sender_id === user?.id;
                 return (
                   <div
                     key={msg.id}
-                    className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
+                    className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}
                   >
-                    {msg.sender_id !== user?.id && (
-                      <span className="text-xs text-muted-foreground mb-1">{msg.sender_name}</span>
+                    {!isOwnMessage && (
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-xs text-muted-foreground font-medium">{msg.sender_name}</span>
+                        {isSenderSuperadmin && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Shield className="h-3 w-3 text-amber-500" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <span className="text-xs">Superadmin</span>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    )}
+                    {isOwnMessage && isSuperadmin && (
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-xs text-muted-foreground font-medium">{profile?.name}</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Shield className="h-3 w-3 text-amber-500" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <span className="text-xs">Superadmin</span>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     )}
                     <div
-                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                        msg.sender_id === user?.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm transition-all ${
+                        isOwnMessage
+                          ? 'bg-primary text-primary-foreground rounded-br-md'
+                          : 'bg-muted rounded-bl-md'
                       }`}
                     >
-                      <p className="text-sm">{msg.content}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
                     </div>
-                    <div className="flex items-center gap-1 mt-1">
+                    <div className="flex items-center gap-1.5 mt-1 px-1">
                       <span className="text-[10px] text-muted-foreground">
                         {format(new Date(msg.created_at), 'HH:mm', { locale: id })}
                       </span>
@@ -367,15 +413,26 @@ export function ChatPanel() {
           </ScrollArea>
 
           {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="p-4 border-t border-border">
+          <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-border bg-background/50 backdrop-blur-sm">
             <div className="flex gap-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Tulis pesan..."
-                className="flex-1"
+                className="flex-1 rounded-full px-4"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                }}
               />
-              <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={!newMessage.trim()}
+                className="rounded-full shrink-0 transition-transform hover:scale-105 active:scale-95"
+              >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
