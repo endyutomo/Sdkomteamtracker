@@ -183,6 +183,7 @@ const Index = () => {
                 persons={persons} 
                 allProfiles={allProfiles}
                 companySettings={companySettings}
+                onOpenCompanySettings={() => setShowCompanySettings(true)}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
               />

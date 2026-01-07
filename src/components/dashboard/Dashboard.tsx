@@ -16,11 +16,12 @@ interface DashboardProps {
   persons: Person[];
   allProfiles: Profile[];
   companySettings?: CompanySettings | null;
+  onOpenCompanySettings?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-export function Dashboard({ activities, persons, allProfiles, companySettings, onRefresh, isRefreshing }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
@@ -52,7 +53,12 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
     <div className="space-y-6 animate-fade-in">
       {/* Company Header with Logo */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={onOpenCompanySettings}
+          className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer text-left"
+          title="Klik untuk edit pengaturan perusahaan"
+        >
           {companySettings?.logo_url ? (
             <img
               src={companySettings.logo_url}
@@ -74,7 +80,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
               </p>
             )}
           </div>
-        </div>
+        </button>
         <Button
           variant="outline"
           size="sm"
