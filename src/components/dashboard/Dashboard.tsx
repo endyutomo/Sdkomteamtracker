@@ -21,6 +21,9 @@ interface DashboardProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   isManager?: boolean;
+  currentUserId?: string;
+  currentDivision?: string;
+  onAddActivity?: () => void;
 }
 
 function LogoImage({ src, alt }: { src: string; alt: string }) {
@@ -56,7 +59,7 @@ function LogoImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false, currentUserId, currentDivision, onAddActivity }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
@@ -177,11 +180,13 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         <RecentActivities activities={activities} />
       </div>
 
-      {/* Missing Activities Card - Only for Manager */}
-      {isManager && (
+      {/* Missing Activities Card - Visible for Manager and Sales/Presales */}
+      {(isManager || currentDivision === 'sales' || currentDivision === 'presales') && (
         <MissingActivitiesCard 
           activities={activities} 
-          allProfiles={allProfiles} 
+          allProfiles={allProfiles}
+          currentUserId={currentUserId}
+          onAddActivity={onAddActivity}
         />
       )}
 
