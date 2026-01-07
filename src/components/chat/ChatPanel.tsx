@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings } from 'lucide-react';
+import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings, Check, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +18,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useChat, ConversationWithDetails, Message } from '@/hooks/useChat';
 import { useChatSettings } from '@/hooks/useChatSettings';
 import { useProfile } from '@/hooks/useProfile';
@@ -47,7 +52,48 @@ export function ChatPanel() {
     openConversation,
     closeConversation,
     clearUnread,
+    getConversationParticipantsCount,
+    allProfiles: chatAllProfiles,
   } = useChat(chatSettings.soundEnabled);
+
+  // Get read status for a message
+  const getReadStatus = (msg: Message) => {
+    if (msg.sender_id !== user?.id) return null;
+    
+    const reads = msg.reads || [];
+    const readersExcludingSender = reads.filter((r) => r.user_id !== msg.sender_id);
+    
+    if (!activeConversation) return { allRead: false, readCount: 0, readers: [], notReaders: [] };
+    
+    const participantsCount = getConversationParticipantsCount(activeConversation);
+    const expectedReaders = participantsCount - 1; // Exclude sender
+    
+    const allRead = expectedReaders > 0 && readersExcludingSender.length >= expectedReaders;
+    
+    // Get who hasn't read
+    let notReaders: string[] = [];
+    if (activeConversation.type === 'direct') {
+      const otherParticipant = activeConversation.participants.find((p) => p.user_id !== user?.id);
+      if (otherParticipant && !readersExcludingSender.some((r) => r.user_id === otherParticipant.user_id)) {
+        notReaders = [otherParticipant.name];
+      }
+    } else if (activeConversation.type === 'division') {
+      const relevantProfiles = activeConversation.division === 'all' 
+        ? chatAllProfiles 
+        : chatAllProfiles.filter((p) => p.division === activeConversation.division || p.division === 'manager');
+      
+      notReaders = relevantProfiles
+        .filter((p) => p.user_id !== user?.id && !readersExcludingSender.some((r) => r.user_id === p.user_id))
+        .map((p) => p.name);
+    }
+    
+    return {
+      allRead,
+      readCount: readersExcludingSender.length,
+      readers: readersExcludingSender.map((r) => r.user_name || 'Unknown'),
+      notReaders,
+    };
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -257,28 +303,65 @@ export function ChatPanel() {
         <>
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
-                >
-                  {msg.sender_id !== user?.id && (
-                    <span className="text-xs text-muted-foreground mb-1">{msg.sender_name}</span>
-                  )}
+              {messages.map((msg) => {
+                const readStatus = getReadStatus(msg);
+                return (
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                      msg.sender_id === user?.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
+                    key={msg.id}
+                    className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
                   >
-                    <p className="text-sm">{msg.content}</p>
+                    {msg.sender_id !== user?.id && (
+                      <span className="text-xs text-muted-foreground mb-1">{msg.sender_name}</span>
+                    )}
+                    <div
+                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                        msg.sender_id === user?.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(new Date(msg.created_at), 'HH:mm', { locale: id })}
+                      </span>
+                      {readStatus && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-pointer">
+                              {readStatus.allRead ? (
+                                <CheckCheck className="h-3 w-3 text-primary" />
+                              ) : (
+                                <Check className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-[200px]">
+                            <div className="text-xs space-y-1">
+                              {readStatus.readers.length > 0 && (
+                                <div>
+                                  <span className="font-medium text-primary">Dibaca:</span>{' '}
+                                  {readStatus.readers.join(', ')}
+                                </div>
+                              )}
+                              {readStatus.notReaders.length > 0 && (
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Belum dibaca:</span>{' '}
+                                  {readStatus.notReaders.join(', ')}
+                                </div>
+                              )}
+                              {readStatus.readers.length === 0 && readStatus.notReaders.length === 0 && (
+                                <span>Belum ada yang membaca</span>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-[10px] text-muted-foreground mt-1">
-                    {format(new Date(msg.created_at), 'HH:mm', { locale: id })}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>

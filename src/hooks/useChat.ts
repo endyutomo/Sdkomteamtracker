@@ -5,6 +5,14 @@ import { useProfile } from './useProfile';
 import { toast } from '@/hooks/use-toast';
 import { playChimeSound } from '@/utils/notificationSound';
 
+export interface MessageRead {
+  id: string;
+  message_id: string;
+  user_id: string;
+  read_at: string;
+  user_name?: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -12,6 +20,7 @@ export interface Message {
   content: string;
   created_at: string;
   sender_name?: string;
+  reads?: MessageRead[];
 }
 
 export interface Conversation {
@@ -91,6 +100,26 @@ export function useChat(soundEnabled: boolean = true) {
     }
   }, [user, allProfiles]);
 
+  const fetchMessageReads = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return {};
+
+    const { data } = await supabase
+      .from('message_reads')
+      .select('*')
+      .in('message_id', messageIds);
+
+    const readsMap: Record<string, MessageRead[]> = {};
+    (data || []).forEach((read) => {
+      const userProfile = allProfiles.find((p) => p.user_id === read.user_id);
+      const readWithName = { ...read, user_name: userProfile?.name || 'Unknown' };
+      if (!readsMap[read.message_id]) {
+        readsMap[read.message_id] = [];
+      }
+      readsMap[read.message_id].push(readWithName);
+    });
+    return readsMap;
+  }, [allProfiles]);
+
   const fetchMessages = useCallback(async (conversationId: string) => {
     if (!user) return;
 
@@ -103,23 +132,37 @@ export function useChat(soundEnabled: boolean = true) {
 
       if (error) throw error;
 
+      const messageIds = (data || []).map((m) => m.id);
+      const readsMap = await fetchMessageReads(messageIds);
+
       const messagesWithNames = (data || []).map((msg) => {
         const senderProfile = allProfiles.find((p) => p.user_id === msg.sender_id);
         return {
           ...msg,
           sender_name: senderProfile?.name || 'Unknown',
+          reads: readsMap[msg.id] || [],
         };
       });
 
       setMessages(messagesWithNames);
+
+      // Mark all messages as read for current user
+      const unreadMessages = (data || []).filter(
+        (msg) => msg.sender_id !== user.id && !readsMap[msg.id]?.some((r) => r.user_id === user.id)
+      );
+      if (unreadMessages.length > 0) {
+        await supabase.from('message_reads').insert(
+          unreadMessages.map((msg) => ({ message_id: msg.id, user_id: user.id }))
+        );
+      }
     } catch (error: any) {
       console.error('Error fetching messages:', error.message);
     }
-  }, [user, allProfiles]);
+  }, [user, allProfiles, fetchMessageReads]);
 
-  // Subscribe to new messages
+  // Subscribe to new messages and read receipts
   useEffect(() => {
-    if (!activeConversation) return;
+    if (!activeConversation || !user) return;
 
     const channel = supabase
       .channel('messages-changes')
@@ -131,13 +174,43 @@ export function useChat(soundEnabled: boolean = true) {
           table: 'messages',
           filter: `conversation_id=eq.${activeConversation.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new as Message;
           const senderProfile = allProfiles.find((p) => p.user_id === newMessage.sender_id);
           setMessages((prev) => [
             ...prev,
-            { ...newMessage, sender_name: senderProfile?.name || 'Unknown' },
+            { ...newMessage, sender_name: senderProfile?.name || 'Unknown', reads: [] },
           ]);
+          
+          // Mark as read if not own message
+          if (newMessage.sender_id !== user.id) {
+            await supabase.from('message_reads').insert({
+              message_id: newMessage.id,
+              user_id: user.id,
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'message_reads',
+        },
+        (payload) => {
+          const newRead = payload.new as MessageRead;
+          const userProfile = allProfiles.find((p) => p.user_id === newRead.user_id);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === newRead.message_id
+                ? {
+                    ...msg,
+                    reads: [...(msg.reads || []), { ...newRead, user_name: userProfile?.name || 'Unknown' }],
+                  }
+                : msg
+            )
+          );
         }
       )
       .subscribe();
@@ -145,7 +218,7 @@ export function useChat(soundEnabled: boolean = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeConversation, allProfiles]);
+  }, [activeConversation, allProfiles, user]);
 
   // Subscribe to all new messages for notifications
   useEffect(() => {
@@ -348,6 +421,18 @@ export function useChat(soundEnabled: boolean = true) {
     setUnreadCount(0);
   };
 
+  // Get total participants count for a conversation
+  const getConversationParticipantsCount = useCallback((conversation: ConversationWithDetails) => {
+    if (conversation.type === 'division') {
+      // For division conversations, count all profiles in that division
+      if (conversation.division === 'all') {
+        return allProfiles.length;
+      }
+      return allProfiles.filter((p) => p.division === conversation.division || p.division === 'manager').length;
+    }
+    return conversation.participants.length;
+  }, [allProfiles]);
+
   return {
     conversations,
     messages,
@@ -361,5 +446,7 @@ export function useChat(soundEnabled: boolean = true) {
     closeConversation,
     clearUnread,
     refetch: fetchConversations,
+    getConversationParticipantsCount,
+    allProfiles,
   };
 }
