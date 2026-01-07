@@ -87,11 +87,29 @@ export function ActivityDetailDialog({
                       </p>
                     )}
                     {activity.collaboration && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          Kolaborasi dengan: {activity.collaboration.personName} ({activity.collaboration.division})
-                        </span>
+                      <div className="mt-2">
+                        {/* Display multi-collaborators if available */}
+                        {activity.collaboration.collaborators && activity.collaboration.collaborators.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Kolaborasi dengan:</span>
+                            {activity.collaboration.collaborators.map((collab, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {collab.personName} ({collab.division === 'manager' ? 'Manager' : 
+                                  collab.division === 'sales' ? 'Sales' : 
+                                  collab.division === 'presales' ? 'Presales' : 'Lainnya'})
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          // Legacy single collaborator format
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              Kolaborasi dengan: {activity.collaboration.personName} ({activity.collaboration.division})
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                     {activity.photos && activity.photos.length > 0 && (

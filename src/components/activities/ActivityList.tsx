@@ -144,11 +144,24 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                   )}
 
                   {activity.collaboration && (
-                    <div className="mt-3">
-                      <Badge className="bg-info/10 text-info border-info/20 hover:bg-info/20">
-                        <Users className="mr-1.5 h-3 w-3" />
-                        Kolaborasi dengan {activity.collaboration.division === 'presales' ? 'Presales' : 'Divisi Lain'}: {activity.collaboration.personName}
-                      </Badge>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {/* Display multi-collaborators if available */}
+                      {activity.collaboration.collaborators && activity.collaboration.collaborators.length > 0 ? (
+                        activity.collaboration.collaborators.map((collab, idx) => (
+                          <Badge key={idx} className="bg-info/10 text-info border-info/20 hover:bg-info/20">
+                            <Users className="mr-1.5 h-3 w-3" />
+                            {collab.personName} ({collab.division === 'manager' ? 'Manager' : 
+                              collab.division === 'sales' ? 'Sales' : 
+                              collab.division === 'presales' ? 'Presales' : 'Lainnya'})
+                          </Badge>
+                        ))
+                      ) : (
+                        // Legacy single collaborator format
+                        <Badge className="bg-info/10 text-info border-info/20 hover:bg-info/20">
+                          <Users className="mr-1.5 h-3 w-3" />
+                          Kolaborasi dengan {activity.collaboration.division === 'presales' ? 'Presales' : 'Divisi Lain'}: {activity.collaboration.personName}
+                        </Badge>
+                      )}
                     </div>
                   )}
                   

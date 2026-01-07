@@ -9,10 +9,17 @@ export interface Person {
 
 export type ActivityType = 'visit' | 'call' | 'email' | 'meeting' | 'other';
 
+export interface CollaborationPerson {
+  personId?: string;
+  personName: string;
+  division: 'sales' | 'presales' | 'manager' | 'other';
+}
+
 export interface Collaboration {
   division: 'presales' | 'other';
   personId?: string;
   personName: string;
+  collaborators?: CollaborationPerson[];
 }
 
 export type ActivityCategory = 'sales' | 'presales';
