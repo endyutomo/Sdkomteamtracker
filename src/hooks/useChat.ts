@@ -29,7 +29,7 @@ export interface ConversationWithDetails extends Conversation {
   unread_count?: number;
 }
 
-export function useChat() {
+export function useChat(soundEnabled: boolean = true) {
   const { user } = useAuth();
   const { profile, allProfiles } = useProfile();
   const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
@@ -175,8 +175,10 @@ export function useChat() {
           // Increment unread count
           setUnreadCount((prev) => prev + 1);
           
-          // Play notification sound
-          playChimeSound();
+          // Play notification sound if enabled
+          if (soundEnabled) {
+            playChimeSound();
+          }
           
           // Show toast notification
           toast({
@@ -195,7 +197,7 @@ export function useChat() {
     return () => {
       supabase.removeChannel(notificationChannel);
     };
-  }, [user, activeConversation, allProfiles, fetchConversations]);
+  }, [user, activeConversation, allProfiles, fetchConversations, soundEnabled]);
 
   useEffect(() => {
     if (allProfiles.length > 0) {

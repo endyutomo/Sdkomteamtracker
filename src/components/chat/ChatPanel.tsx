@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter } from 'lucide-react';
+import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter, Volume2, VolumeX, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -12,7 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useChat, ConversationWithDetails, Message } from '@/hooks/useChat';
+import { useChatSettings } from '@/hooks/useChatSettings';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
@@ -27,6 +34,7 @@ export function ChatPanel() {
   
   const { user } = useAuth();
   const { profile, allProfiles } = useProfile();
+  const { settings: chatSettings, toggleSound } = useChatSettings();
   const {
     conversations,
     messages,
@@ -39,7 +47,7 @@ export function ChatPanel() {
     openConversation,
     closeConversation,
     clearUnread,
-  } = useChat();
+  } = useChat(chatSettings.soundEnabled);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,7 +154,33 @@ export function ChatPanel() {
               <MessageCircle className="h-5 w-5 text-primary" />
               <span className="font-semibold">Chat</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Pengaturan">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56" align="end">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Pengaturan Chat</h4>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {chatSettings.soundEnabled ? (
+                          <Volume2 className="h-4 w-4 text-primary" />
+                        ) : (
+                          <VolumeX className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="text-sm">Suara Notifikasi</span>
+                      </div>
+                      <Switch
+                        checked={chatSettings.soundEnabled}
+                        onCheckedChange={toggleSound}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowNewChat(!showNewChat)}>
                 <Users className="h-4 w-4" />
               </Button>
