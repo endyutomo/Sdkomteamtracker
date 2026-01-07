@@ -1,10 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft } from 'lucide-react';
+import { MessageCircle, X, Send, Users, User, Building2, ChevronLeft, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useChat, ConversationWithDetails, Message } from '@/hooks/useChat';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +22,7 @@ export function ChatPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
+  const [filterType, setFilterType] = useState<string>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { user } = useAuth();
@@ -81,6 +89,17 @@ export function ChatPanel() {
   };
 
   const otherUsers = allProfiles.filter((p) => p.user_id !== user?.id);
+
+  // Filter conversations based on selected filter
+  const filteredConversations = conversations.filter((conv) => {
+    if (filterType === 'all') return true;
+    if (filterType === 'direct') return conv.type === 'direct';
+    if (filterType === 'division') return conv.type === 'division';
+    if (filterType === 'sales') return conv.type === 'division' && conv.division === 'sales';
+    if (filterType === 'presales') return conv.type === 'division' && conv.division === 'presales';
+    if (filterType === 'all-team') return conv.type === 'division' && conv.division === 'all';
+    return true;
+  });
 
   if (!isOpen) {
     return (
@@ -232,51 +251,103 @@ export function ChatPanel() {
           </form>
         </>
       ) : (
-        <ScrollArea className="flex-1 p-4">
-          {loading ? (
-            <div className="text-center text-muted-foreground py-8">Memuat...</div>
-          ) : conversations.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Belum ada percakapan</p>
-              <Button
-                variant="link"
-                onClick={() => setShowNewChat(true)}
-                className="mt-2"
-              >
-                Mulai chat baru
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {conversations.map((conv) => (
+        <div className="flex-1 flex flex-col">
+          {/* Filter */}
+          <div className="p-3 border-b border-border">
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <SelectValue placeholder="Filter percakapan" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Percakapan</SelectItem>
+                <SelectItem value="direct">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Chat Langsung
+                  </div>
+                </SelectItem>
+                <SelectItem value="division">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Semua Grup Divisi
+                  </div>
+                </SelectItem>
+                <SelectItem value="sales">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Tim Sales
+                  </div>
+                </SelectItem>
+                <SelectItem value="presales">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Tim Presales
+                  </div>
+                </SelectItem>
+                <SelectItem value="all-team">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Semua Tim
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <ScrollArea className="flex-1 p-4">
+            {loading ? (
+              <div className="text-center text-muted-foreground py-8">Memuat...</div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>{filterType === 'all' ? 'Belum ada percakapan' : 'Tidak ada percakapan yang cocok'}</p>
                 <Button
-                  key={conv.id}
-                  variant="ghost"
-                  className="w-full justify-start gap-3 h-auto py-3"
-                  onClick={() => openConversation(conv)}
+                  variant="link"
+                  onClick={() => setShowNewChat(true)}
+                  className="mt-2"
                 >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    {getConversationIcon(conv)}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="font-medium truncate">{getConversationName(conv)}</p>
-                    {conv.last_message && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {conv.last_message.content}
-                      </p>
-                    )}
-                  </div>
-                  {conv.last_message && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {format(new Date(conv.last_message.created_at), 'HH:mm')}
-                    </span>
-                  )}
+                  Mulai chat baru
                 </Button>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredConversations.map((conv) => (
+                  <Button
+                    key={conv.id}
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-auto py-3"
+                    onClick={() => openConversation(conv)}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      {getConversationIcon(conv)}
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{getConversationName(conv)}</p>
+                        <Badge variant="secondary" className="text-[10px] shrink-0">
+                          {conv.type === 'direct' ? 'Direct' : 'Grup'}
+                        </Badge>
+                      </div>
+                      {conv.last_message && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {conv.last_message.content}
+                        </p>
+                      )}
+                    </div>
+                    {conv.last_message && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(new Date(conv.last_message.created_at), 'HH:mm')}
+                      </span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       )}
     </div>
   );
