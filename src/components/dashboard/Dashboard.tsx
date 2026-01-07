@@ -19,6 +19,7 @@ interface DashboardProps {
   onOpenCompanySettings?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  isManager?: boolean;
 }
 
 function LogoImage({ src, alt }: { src: string; alt: string }) {
@@ -54,7 +55,7 @@ function LogoImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
@@ -187,6 +188,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         open={teamDialog}
         onClose={() => setTeamDialog(false)}
         profiles={allProfiles}
+        isManager={isManager}
       />
     </div>
   );

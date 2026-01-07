@@ -186,6 +186,7 @@ const Index = () => {
                 onOpenCompanySettings={() => setShowCompanySettings(true)}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
+                isManager={isManager}
               />
             )}
 
