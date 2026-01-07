@@ -26,6 +26,7 @@ export type ActivityCategory = 'sales' | 'presales';
 
 export interface DailyActivity {
   id: string;
+  userId: string;
   date: Date;
   category: ActivityCategory;
   personId: string;
