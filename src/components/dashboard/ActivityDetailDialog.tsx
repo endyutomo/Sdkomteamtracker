@@ -2,9 +2,10 @@ import { DailyActivity } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Phone, Mail, MapPin, MessageSquare, Users, Calendar } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageSquare, Users, Calendar, Navigation, Briefcase, FileText } from 'lucide-react';
 
 interface ActivityDetailDialogProps {
   open: boolean;
@@ -81,9 +82,53 @@ export function ActivityDetailDialog({
                       <Calendar className="h-4 w-4" />
                       {format(new Date(activity.date), 'EEEE, dd MMMM yyyy', { locale: id })}
                     </div>
+                    {/* Project and Opportunity */}
+                    {(activity.project || activity.opportunity) && (
+                      <div className="flex flex-wrap gap-2 text-sm">
+                        {activity.project && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Briefcase className="h-4 w-4" />
+                            <span>Project: {activity.project}</span>
+                          </div>
+                        )}
+                        {activity.opportunity && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <FileText className="h-4 w-4" />
+                            <span>Opportunity: {activity.opportunity}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Location with Google Maps link */}
+                    {(activity.locationName || (activity.latitude && activity.longitude)) && (
+                      <div className="flex items-center gap-2 bg-muted p-2 rounded">
+                        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-muted-foreground truncate">
+                            {activity.locationName || `${activity.latitude}, ${activity.longitude}`}
+                          </p>
+                        </div>
+                        {activity.latitude && activity.longitude && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-shrink-0"
+                            onClick={() => {
+                              const url = `https://www.google.com/maps?q=${activity.latitude},${activity.longitude}`;
+                              window.open(url, '_blank');
+                            }}
+                          >
+                            <Navigation className="h-4 w-4 mr-1" />
+                            Maps
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
                     {activity.notes && (
                       <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                        {activity.notes}
+                        <span className="font-medium">Catatan: </span>{activity.notes}
                       </p>
                     )}
                     {activity.collaboration && (
