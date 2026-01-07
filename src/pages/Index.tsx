@@ -339,6 +339,7 @@ const Index = () => {
         allProfiles={allProfiles}
         currentProfile={profile}
         editActivity={editActivity}
+        allActivities={activities}
       />
 
       <PersonForm
