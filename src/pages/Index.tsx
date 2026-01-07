@@ -11,6 +11,7 @@ import { ProfileForm } from '@/components/profile/ProfileForm';
 import { TeamMemberList } from '@/components/profile/TeamMemberList';
 import { CompanySettingsDialog } from '@/components/company/CompanySettingsDialog';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Loader2, MapPin, Phone, Mail, Users, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -336,6 +337,9 @@ const Index = () => {
         profile={profile}
         onUpdateProfile={updateProfile}
       />
+
+      {/* Chat Panel */}
+      <ChatPanel />
     </div>
   );
 };

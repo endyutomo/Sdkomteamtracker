@@ -66,6 +66,8 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
     if (isManager) return true;
     // Sales can only modify their own sales activities, not presales
     if (profile?.division === 'sales' && activity.category === 'presales') return false;
+    // Presales can only modify their own presales activities, not sales
+    if (profile?.division === 'presales' && activity.category === 'sales') return false;
     // User can modify their own activities
     return activity.personId === profile?.id;
   };
