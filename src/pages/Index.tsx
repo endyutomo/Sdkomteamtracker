@@ -12,9 +12,11 @@ import { TeamMemberList } from '@/components/profile/TeamMemberList';
 import { CompanySettingsDialog } from '@/components/company/CompanySettingsDialog';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { ChatPanel } from '@/components/chat/ChatPanel';
+import { PendingManagerRequestsDialog } from '@/components/admin/PendingManagerRequestsDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Loader2, MapPin, Phone, Mail, Users, Calendar } from 'lucide-react';
+import { Plus, Search, Loader2, MapPin, Phone, Mail, Users, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -27,6 +29,7 @@ import { usePersons } from '@/hooks/usePersons';
 import { useActivities } from '@/hooks/useActivities';
 import { useProfile } from '@/hooks/useProfile';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { usePendingManagerRequests } from '@/hooks/usePendingManagerRequests';
 import { DailyActivity, Person } from '@/types';
 
 const Index = () => {
@@ -34,10 +37,12 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { persons, loading: personsLoading, addPerson, updatePerson, deletePerson } = usePersons();
   const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity, refetch: refetchActivities } = useActivities();
-  const { profile, allProfiles, loading: profileLoading, isManager, createProfile, updateProfile, deleteProfile, refetchAll } = useProfile();
+  const { profile, allProfiles, loading: profileLoading, isManager, isSuperadmin, createProfile, updateProfile, deleteProfile, refetchAll } = useProfile();
   const { settings: companySettings, updateSettings, uploadLogo, loading: companyLoading } = useCompanySettings();
+  const { pendingRequests, myRequest, createRequest, approveRequest, rejectRequest } = usePendingManagerRequests();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showPendingRequests, setShowPendingRequests] = useState(false);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showActivityForm, setShowActivityForm] = useState(false);
@@ -145,6 +150,9 @@ const Index = () => {
         <ProfileForm
           open={true}
           onSubmit={createProfile}
+          onManagerRequest={createRequest}
+          userEmail={user.email || ''}
+          pendingRequest={myRequest}
           isNewUser={true}
         />
       </div>
@@ -169,6 +177,23 @@ const Index = () => {
         onOpenCompanySettings={() => setShowCompanySettings(true)}
         onOpenSettings={() => setShowSettings(true)}
       />
+
+      {/* Superadmin pending requests button */}
+      {isSuperadmin && pendingRequests.length > 0 && (
+        <div className="container mx-auto px-4 pt-4">
+          <Button
+            variant="outline"
+            className="w-full border-warning text-warning hover:bg-warning/10"
+            onClick={() => setShowPendingRequests(true)}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            {pendingRequests.length} Permintaan Pendaftaran Manager Menunggu Persetujuan
+            <Badge variant="destructive" className="ml-2">
+              {pendingRequests.length}
+            </Badge>
+          </Button>
+        </div>
+      )}
 
       <main className="container mx-auto px-4 py-6">
         {isLoading ? (
@@ -339,6 +364,15 @@ const Index = () => {
         onClose={() => setShowSettings(false)}
         profile={profile}
         onUpdateProfile={updateProfile}
+      />
+
+      {/* Pending Manager Requests Dialog for Superadmin */}
+      <PendingManagerRequestsDialog
+        open={showPendingRequests}
+        onClose={() => setShowPendingRequests(false)}
+        requests={pendingRequests}
+        onApprove={approveRequest}
+        onReject={rejectRequest}
       />
 
       {/* Chat Panel */}

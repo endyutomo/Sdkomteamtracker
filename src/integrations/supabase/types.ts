@@ -239,6 +239,42 @@ export type Database = {
           },
         ]
       }
+      pending_manager_requests: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          jabatan: string | null
+          name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          jabatan?: string | null
+          name: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          jabatan?: string | null
+          name?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       persons: {
         Row: {
           created_at: string
