@@ -8,8 +8,12 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, User, Mail, ArrowLeft, Briefcase, Building2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Users, User, Mail, ArrowLeft, Briefcase, Building2, Pencil, Loader2, Save, X } from 'lucide-react';
 import { Profile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface TeamDetailDialogProps {
   open: boolean;
@@ -18,8 +22,17 @@ interface TeamDetailDialogProps {
   isManager?: boolean;
 }
 
+interface UserEmail {
+  userId: string;
+  email: string;
+}
+
 export function TeamDetailDialog({ open, onClose, profiles, isManager = false }: TeamDetailDialogProps) {
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [userEmails, setUserEmails] = useState<Record<string, string>>({});
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [updatingEmail, setUpdatingEmail] = useState(false);
   
   const salesProfiles = profiles.filter(p => p.division === 'sales');
   const presalesProfiles = profiles.filter(p => p.division === 'presales');
@@ -43,19 +56,103 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
     }
   };
 
+  const fetchUserEmail = async (userId: string) => {
+    // Email is fetched via the edge function when editing
+    // For display, we'll show a placeholder
+    if (!userEmails[userId]) {
+      setUserEmails(prev => ({ ...prev, [userId]: 'Memuat...' }));
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('get-user-email', {
+          body: { targetUserId: userId }
+        });
+        
+        if (error) throw error;
+        setUserEmails(prev => ({ ...prev, [userId]: data.email || 'Email tidak tersedia' }));
+      } catch {
+        setUserEmails(prev => ({ ...prev, [userId]: 'Email tidak tersedia' }));
+      }
+    }
+  };
+
   const handleClose = () => {
     setSelectedProfile(null);
+    setEditingEmail(false);
+    setNewEmail('');
     onClose();
   };
 
   const handleBack = () => {
     setSelectedProfile(null);
+    setEditingEmail(false);
+    setNewEmail('');
+  };
+
+  const handleSelectProfile = async (profile: Profile) => {
+    setSelectedProfile(profile);
+    if (isManager) {
+      await fetchUserEmail(profile.user_id);
+    }
+  };
+
+  const handleStartEditEmail = () => {
+    setNewEmail(userEmails[selectedProfile?.user_id || ''] || '');
+    setEditingEmail(true);
+  };
+
+  const handleCancelEditEmail = () => {
+    setEditingEmail(false);
+    setNewEmail('');
+  };
+
+  const handleUpdateEmail = async () => {
+    if (!selectedProfile || !newEmail.trim()) return;
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      toast({
+        title: 'Error',
+        description: 'Format email tidak valid',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUpdatingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-user-email', {
+        body: { 
+          targetUserId: selectedProfile.user_id, 
+          newEmail: newEmail.trim() 
+        }
+      });
+
+      if (error) throw error;
+
+      setUserEmails(prev => ({ ...prev, [selectedProfile.user_id]: newEmail.trim() }));
+      setEditingEmail(false);
+      setNewEmail('');
+      
+      toast({
+        title: 'Berhasil',
+        description: 'Email berhasil diubah',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Gagal mengubah email',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingEmail(false);
+    }
   };
 
   const ProfileCard = ({ profile }: { profile: Profile }) => (
     <button
       type="button"
-      onClick={() => isManager && setSelectedProfile(profile)}
+      onClick={() => isManager && handleSelectProfile(profile)}
       className={`w-full flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 text-left transition-all ${
         isManager 
           ? 'hover:bg-muted hover:border-primary/30 cursor-pointer' 
@@ -117,8 +214,68 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
           </div>
         </div>
 
+        {/* Email Section - Editable by Manager */}
+        <div className="p-3 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-3">
+            <Mail className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">Email</p>
+              {editingEmail ? (
+                <div className="space-y-2 mt-1">
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Email baru"
+                    className="h-9"
+                    disabled={updatingEmail}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleUpdateEmail}
+                      disabled={updatingEmail || !newEmail.trim()}
+                      className="gap-1"
+                    >
+                      {updatingEmail ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Save className="h-3 w-3" />
+                      )}
+                      Simpan
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEditEmail}
+                      disabled={updatingEmail}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="font-medium text-foreground">
+                  {userEmails[profile.user_id] || 'Memuat...'}
+                </p>
+              )}
+            </div>
+            {isManager && !editingEmail && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleStartEditEmail}
+                className="h-8 w-8"
+                title="Ubah email"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-          <Mail className="h-5 w-5 text-muted-foreground" />
+          <User className="h-5 w-5 text-muted-foreground" />
           <div>
             <p className="text-sm text-muted-foreground">Bergabung sejak</p>
             <p className="font-medium text-foreground">
