@@ -280,7 +280,13 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     }
     
     if (!customerName.trim()) {
-      toast.error('Masukkan nama customer');
+      toast.error('Nama customer wajib diisi');
+      return;
+    }
+
+    // Location is mandatory for all activity types
+    if (!location || !location.locationName) {
+      toast.error('Lokasi dan alamat wajib diisi');
       return;
     }
 
@@ -318,9 +324,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       notes: notes.trim(),
       collaboration,
       photos: activityType === 'visit' ? photos : undefined,
-      latitude: activityType === 'visit' ? location?.latitude : undefined,
-      longitude: activityType === 'visit' ? location?.longitude : undefined,
-      locationName: activityType === 'visit' ? location?.locationName : undefined,
+      latitude: location?.latitude,
+      longitude: location?.longitude,
+      locationName: location?.locationName,
       reminderAt,
     });
 
@@ -427,13 +433,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             </Select>
           </div>
 
-          {/* Customer Name */}
+          {/* Customer Name - Mandatory */}
           <div className="space-y-2">
-            <Label>Nama Customer</Label>
+            <Label>Nama Customer <span className="text-destructive">*</span></Label>
             <Input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Masukkan nama customer"
+              required
             />
           </div>
 
@@ -459,60 +466,57 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
 
           {/* Photo Upload (only for visit) */}
           {activityType === 'visit' && (
-            <>
-              {/* Photo Upload */}
-              <div className="space-y-3 rounded-lg border border-border p-4">
-                <div className="flex items-center gap-2">
-                  <Camera className="h-4 w-4 text-muted-foreground" />
-                  <Label className="font-medium">Foto Kunjungan</Label>
-                </div>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-                
-                <div className="flex flex-wrap gap-3">
-                  {photos.map((photo, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={photo}
-                        alt={`Foto ${index + 1}`}
-                        className="h-20 w-20 rounded-lg object-cover border border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="h-20 w-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <ImagePlus className="h-5 w-5" />
-                    <span className="text-xs">Tambah</span>
-                  </button>
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                  Maksimal 5MB per foto. Format: JPG, PNG, WebP
-                </p>
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <div className="flex items-center gap-2">
+                <Camera className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-medium">Foto Kunjungan</Label>
               </div>
-
-              {/* Location Picker */}
-              <LocationPicker value={location} onChange={setLocation} />
-            </>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+              
+              <div className="flex flex-wrap gap-3">
+                {photos.map((photo, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={photo}
+                      alt={`Foto ${index + 1}`}
+                      className="h-20 w-20 rounded-lg object-cover border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-20 w-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <ImagePlus className="h-5 w-5" />
+                  <span className="text-xs">Tambah</span>
+                </button>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Maksimal 5MB per foto. Format: JPG, PNG, WebP
+              </p>
+            </div>
           )}
+
+          {/* Location Picker - Mandatory for all activity types */}
+          <LocationPicker value={location} onChange={setLocation} required />
 
           {/* Collaboration - Available for all activity types */}
           <div className="space-y-4 rounded-lg border border-border p-4">
