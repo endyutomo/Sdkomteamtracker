@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { DailyActivity, Person } from '@/types';
-import { format } from 'date-fns';
+import { format, differenceInHours } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X, Eye } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X, Eye, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ActivityListProps {
   activities: DailyActivity[];
@@ -61,15 +62,34 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   
+  // Check if activity is within 24 hours of creation
+  const isWithin24Hours = (activity: DailyActivity) => {
+    const hoursElapsed = differenceInHours(new Date(), new Date(activity.createdAt));
+    return hoursElapsed < 24;
+  };
+
+  // Get remaining hours for editing
+  const getRemainingHours = (activity: DailyActivity) => {
+    const hoursElapsed = differenceInHours(new Date(), new Date(activity.createdAt));
+    return Math.max(0, 24 - hoursElapsed);
+  };
+  
   // Check if user can edit/delete an activity
   const canModify = (activity: DailyActivity) => {
     // Superadmin can modify all activities
     if (isSuperadmin) return true;
+    
+    // All users can edit their own activities within 24 hours
+    if (activity.personId === profile?.id && isWithin24Hours(activity)) {
+      return true;
+    }
+    
     // Regular manager can only view, not edit others
     if (isManager && !isSuperadmin) {
       // Manager can edit their own activities only
       return activity.personId === profile?.id;
     }
+    
     // Sales can only modify their own sales activities, not presales
     if (profile?.division === 'sales' && activity.category === 'presales') return false;
     // Presales can only modify their own presales activities, not sales
@@ -175,6 +195,22 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
               
               {canModify(activity) ? (
                 <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  {/* Show remaining time indicator for 24-hour edit window */}
+                  {activity.personId === profile?.id && isWithin24Hours(activity) && !isSuperadmin && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {getRemainingHours(activity)}j
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sisa {getRemainingHours(activity)} jam untuk mengedit</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
