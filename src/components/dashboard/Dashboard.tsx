@@ -6,6 +6,7 @@ import { ActivityChart } from './ActivityChart';
 import { RecentActivities } from './RecentActivities';
 import { ActivityDetailDialog } from './ActivityDetailDialog';
 import { TeamDetailDialog } from './TeamDetailDialog';
+import { MissingActivitiesCard } from './MissingActivitiesCard';
 import { DailyActivity, Person } from '@/types';
 import { Profile } from '@/hooks/useProfile';
 import { CompanySettings } from '@/hooks/useCompanySettings';
@@ -175,6 +176,14 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         <ActivityChart activities={activities} />
         <RecentActivities activities={activities} />
       </div>
+
+      {/* Missing Activities Card - Only for Manager */}
+      {isManager && (
+        <MissingActivitiesCard 
+          activities={activities} 
+          allProfiles={allProfiles} 
+        />
+      )}
 
       <ActivityDetailDialog
         open={detailDialog.open}

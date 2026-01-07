@@ -40,7 +40,7 @@ interface LocationData {
 interface ActivityFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => void;
+  onSubmit: (activity: Omit<DailyActivity, 'id' | 'createdAt' | 'userId'>) => void;
   persons: Person[];
   allProfiles?: Profile[];
   currentProfile?: Profile | null;

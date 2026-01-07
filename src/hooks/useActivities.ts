@@ -43,6 +43,7 @@ export function useActivities() {
 
       const mapped: DailyActivity[] = (data || []).map((a) => ({
         id: a.id,
+        userId: a.user_id,
         date: new Date(a.date),
         category: a.category as ActivityCategory,
         personId: a.person_id || '',
@@ -74,7 +75,7 @@ export function useActivities() {
     fetchActivities();
   }, [fetchActivities]);
 
-  const addActivity = async (activity: Omit<DailyActivity, 'id' | 'createdAt'>) => {
+  const addActivity = async (activity: Omit<DailyActivity, 'id' | 'createdAt' | 'userId'>) => {
     if (!user) return;
 
     try {
@@ -111,6 +112,7 @@ export function useActivities() {
 
       const newActivity: DailyActivity = {
         id: data.id,
+        userId: data.user_id,
         date: new Date(data.date),
         category: data.category as ActivityCategory,
         personId: data.person_id || '',

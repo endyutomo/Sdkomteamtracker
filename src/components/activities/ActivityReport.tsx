@@ -34,7 +34,8 @@ import {
   Eye,
   Search,
   X,
-  CalendarIcon
+  CalendarIcon,
+  AlertCircle
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -48,6 +49,7 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { MissingActivitiesReport } from './MissingActivitiesReport';
 
 interface ActivityReportProps {
   activities: DailyActivity[];
@@ -552,6 +554,12 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
           {renderActivityTable(presalesActivities, 'presales')}
         </TabsContent>
       </Tabs>
+
+      {/* Missing Activities Report */}
+      <MissingActivitiesReport 
+        activities={activities} 
+        allProfiles={allProfiles} 
+      />
 
       {/* Activity Detail Dialog */}
       <Dialog open={!!selectedActivity} onOpenChange={() => setSelectedActivity(null)}>
