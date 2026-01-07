@@ -18,6 +18,7 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   content: string;
+  image_url?: string | null;
   created_at: string;
   sender_name?: string;
   reads?: MessageRead[];
@@ -380,14 +381,15 @@ export function useChat(soundEnabled: boolean = true) {
     }
   };
 
-  const sendMessage = async (conversationId: string, content: string) => {
-    if (!user || !content.trim()) return;
+  const sendMessage = async (conversationId: string, content: string, imageUrl?: string) => {
+    if (!user || (!content.trim() && !imageUrl)) return;
 
     try {
       const { error } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: user.id,
-        content: content.trim(),
+        content: content.trim() || (imageUrl ? '📷 Gambar' : ''),
+        image_url: imageUrl || null,
       });
 
       if (error) throw error;
