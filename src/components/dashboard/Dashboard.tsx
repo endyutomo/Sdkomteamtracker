@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw, Building2 } from 'lucide-react';
+import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw, Building2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
@@ -19,6 +19,39 @@ interface DashboardProps {
   onOpenCompanySettings?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+}
+
+function LogoImage({ src, alt }: { src: string; alt: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="h-14 w-14 rounded-lg border border-border bg-muted flex items-center justify-center shadow-sm">
+        <Building2 className="h-7 w-7 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-14 w-14">
+      {isLoading && (
+        <div className="absolute inset-0 rounded-lg border border-border bg-muted flex items-center justify-center shadow-sm">
+          <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`h-14 w-14 rounded-lg object-contain border border-border bg-background shadow-sm transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setIsLoading(false);
+          setHasError(true);
+        }}
+      />
+    </div>
+  );
 }
 
 export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing }: DashboardProps) {
@@ -60,10 +93,9 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           title="Klik untuk edit pengaturan perusahaan"
         >
           {companySettings?.logo_url ? (
-            <img
-              src={companySettings.logo_url}
-              alt={companySettings.name || 'Logo Perusahaan'}
-              className="h-14 w-14 rounded-lg object-contain border border-border bg-background shadow-sm"
+            <LogoImage 
+              src={companySettings.logo_url} 
+              alt={companySettings.name || 'Logo Perusahaan'} 
             />
           ) : (
             <div className="h-14 w-14 rounded-lg border border-border bg-muted flex items-center justify-center shadow-sm">
