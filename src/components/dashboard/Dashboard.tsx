@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw } from 'lucide-react';
+import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
@@ -8,17 +8,19 @@ import { ActivityDetailDialog } from './ActivityDetailDialog';
 import { TeamDetailDialog } from './TeamDetailDialog';
 import { DailyActivity, Person } from '@/types';
 import { Profile } from '@/hooks/useProfile';
+import { CompanySettings } from '@/hooks/useCompanySettings';
 import { isToday, isThisWeek } from 'date-fns';
 
 interface DashboardProps {
   activities: DailyActivity[];
   persons: Person[];
   allProfiles: Profile[];
+  companySettings?: CompanySettings | null;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-export function Dashboard({ activities, persons, allProfiles, onRefresh, isRefreshing }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, companySettings, onRefresh, isRefreshing }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
@@ -48,8 +50,31 @@ export function Dashboard({ activities, persons, allProfiles, onRefresh, isRefre
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Refresh Button */}
-      <div className="flex justify-end">
+      {/* Company Header with Logo */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {companySettings?.logo_url ? (
+            <img
+              src={companySettings.logo_url}
+              alt={companySettings.name || 'Logo Perusahaan'}
+              className="h-14 w-14 rounded-lg object-contain border border-border bg-background shadow-sm"
+            />
+          ) : (
+            <div className="h-14 w-14 rounded-lg border border-border bg-muted flex items-center justify-center shadow-sm">
+              <Building2 className="h-7 w-7 text-muted-foreground" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              {companySettings?.name || 'Dashboard'}
+            </h1>
+            {companySettings?.address && (
+              <p className="text-sm text-muted-foreground truncate max-w-xs">
+                {companySettings.address}
+              </p>
+            )}
+          </div>
+        </div>
         <Button
           variant="outline"
           size="sm"

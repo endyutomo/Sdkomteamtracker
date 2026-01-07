@@ -182,6 +182,7 @@ const Index = () => {
                 activities={filteredActivities} 
                 persons={persons} 
                 allProfiles={allProfiles}
+                companySettings={companySettings}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
               />
