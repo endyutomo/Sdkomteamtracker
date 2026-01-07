@@ -23,6 +23,7 @@ interface DashboardProps {
   isManager?: boolean;
   currentUserId?: string;
   currentDivision?: string;
+  currentUserName?: string;
   onAddActivity?: () => void;
 }
 
@@ -59,7 +60,7 @@ function LogoImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false, currentUserId, currentDivision, onAddActivity }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false, currentUserId, currentDivision, currentUserName, onAddActivity }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
@@ -89,6 +90,17 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Welcome Message */}
+      {currentUserName && (
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            Selamat datang, <span className="text-primary">{currentUserName}</span>! 👋
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Semoga hari ini produktif dan menyenangkan.
+          </p>
+        </div>
+      )}
       {/* Company Header with Logo */}
       <div className="flex items-center justify-between">
         <button

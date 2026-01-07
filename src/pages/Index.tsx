@@ -214,6 +214,7 @@ const Index = () => {
                 isManager={isManager}
                 currentUserId={user?.id}
                 currentDivision={profile.division}
+                currentUserName={profile.name}
                 onAddActivity={() => {
                   setEditActivity(null);
                   setShowActivityForm(true);
