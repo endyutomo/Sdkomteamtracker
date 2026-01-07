@@ -420,24 +420,12 @@ export function ChatPanel() {
                     key={msg.id}
                     className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}
                   >
-                    {!isOwnMessage && (
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-xs text-muted-foreground font-medium">{msg.sender_name}</span>
-                        {isSenderSuperadmin && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Shield className="h-3 w-3 text-amber-500" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <span className="text-xs">Superadmin</span>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    )}
-                    {isOwnMessage && isSuperadmin && (
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-xs text-muted-foreground font-medium">{profile?.name}</span>
+                    {/* Always show sender name for all messages */}
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {isOwnMessage ? (profile?.name || 'Anda') : msg.sender_name}
+                      </span>
+                      {isSenderSuperadmin && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Shield className="h-3 w-3 text-amber-500" />
@@ -446,8 +434,8 @@ export function ChatPanel() {
                             <span className="text-xs">Superadmin</span>
                           </TooltipContent>
                         </Tooltip>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     <div
                       className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm transition-all ${
                         isOwnMessage
