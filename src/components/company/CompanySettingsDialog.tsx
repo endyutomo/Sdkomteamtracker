@@ -52,6 +52,8 @@ export function CompanySettingsDialog({ open, onClose, settings, onUpdate, uploa
     const url = await uploadLogo(file);
     if (url) {
       setLogoUrl(url);
+      // Auto-save logo immediately after upload
+      await onUpdate({ logo_url: url });
     }
     setUploading(false);
 
