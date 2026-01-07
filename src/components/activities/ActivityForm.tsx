@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { DailyActivity, ActivityType, ActivityCategory, Person, Collaboration } from '@/types';
+import { DailyActivity, ActivityType, ActivityCategory, Person, Collaboration, CollaborationPerson } from '@/types';
 import { Profile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,11 +23,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield } from 'lucide-react';
+import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { LocationPicker } from './LocationPicker';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 interface LocationData {
   latitude: number;
@@ -63,9 +64,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [opportunity, setOpportunity] = useState('');
   const [notes, setNotes] = useState('');
   const [hasCollaboration, setHasCollaboration] = useState(false);
-  const [collaborationDivision, setCollaborationDivision] = useState<'presales' | 'other'>('presales');
-  const [collaborationPersonId, setCollaborationPersonId] = useState('');
-  const [collaborationPersonName, setCollaborationPersonName] = useState('');
+  const [collaborators, setCollaborators] = useState<CollaborationPerson[]>([]);
+  const [selectedCollaboratorId, setSelectedCollaboratorId] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | undefined>();
   const [hasReminder, setHasReminder] = useState(false);
@@ -93,6 +93,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   // Get superadmin profiles
   const superadminProfiles = allProfiles.filter(p => superadminIds.includes(p.user_id));
 
+  // Get ALL profiles for collaboration selection - everyone can be selected
+  const allCollaborationOptions = allProfiles.map(p => ({ 
+    id: p.id, 
+    name: p.name, 
+    division: p.division as 'sales' | 'presales' | 'manager', 
+    user_id: p.user_id 
+  }));
+
   // Get profiles by division for selection - include managers and superadmins
   const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager' || superadminIds.includes(p.user_id));
   const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager' || superadminIds.includes(p.user_id));
@@ -111,6 +119,11 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
     
   const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
+  
+  // Filter collaboration options to exclude already selected collaborators and current person
+  const availableCollaboratorOptions = allCollaborationOptions.filter(
+    p => p.id !== personId && !collaborators.some(c => c.personId === p.id)
+  );
 
   // Set current user as default selection when opening form
   useEffect(() => {
@@ -152,9 +165,17 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       }
       if (editActivity.collaboration) {
         setHasCollaboration(true);
-        setCollaborationDivision(editActivity.collaboration.division);
-        setCollaborationPersonId(editActivity.collaboration.personId || '');
-        setCollaborationPersonName(editActivity.collaboration.personName);
+        // Support both old single collaborator and new multi-collaborator format
+        if (editActivity.collaboration.collaborators && editActivity.collaboration.collaborators.length > 0) {
+          setCollaborators(editActivity.collaboration.collaborators);
+        } else if (editActivity.collaboration.personName) {
+          // Legacy format - convert to new format
+          setCollaborators([{
+            personId: editActivity.collaboration.personId,
+            personName: editActivity.collaboration.personName,
+            division: editActivity.collaboration.division === 'presales' ? 'presales' : 'other'
+          }]);
+        }
       }
       if (editActivity.reminderAt) {
         setHasReminder(true);
@@ -183,9 +204,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setOpportunity('');
     setNotes('');
     setHasCollaboration(false);
-    setCollaborationDivision('presales');
-    setCollaborationPersonId('');
-    setCollaborationPersonName('');
+    setCollaborators([]);
+    setSelectedCollaboratorId('');
     setPhotos([]);
     setLocation(undefined);
     setHasReminder(false);
@@ -236,21 +256,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     const selectedOption = availableOptions.find(p => p.id === personId);
     
     let collaboration: Collaboration | undefined;
-    if (hasCollaboration && activityType === 'visit') {
-      // For sales category, collab with presales; for presales category, collab with sales
-      const collabOptions = category === 'sales' ? availablePresalesOptions : availableSalesOptions;
-      const collabOption = collabOptions.find(p => p.id === collaborationPersonId);
-      const collabName = collabOption?.name || collaborationPersonName;
-      
-      if (!collabName.trim()) {
-        toast.error('Masukkan nama orang untuk kolaborasi');
-        return;
-      }
-      
+    if (hasCollaboration && collaborators.length > 0) {
+      // Use the first collaborator for legacy fields, store all in collaborators array
+      const firstCollab = collaborators[0];
       collaboration = {
-        division: collaborationDivision,
-        personId: collaborationPersonId || undefined,
-        personName: collabName,
+        division: firstCollab.division === 'sales' || firstCollab.division === 'manager' ? 'presales' : firstCollab.division as 'presales' | 'other',
+        personId: firstCollab.personId,
+        personName: firstCollab.personName,
+        collaborators: collaborators,
       };
     }
 
@@ -413,7 +426,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             />
           </div>
 
-          {/* Photo Upload and Collaboration (only for visit) */}
+          {/* Photo Upload (only for visit) */}
           {activityType === 'visit' && (
             <>
               {/* Photo Upload */}
@@ -467,107 +480,120 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
 
               {/* Location Picker */}
               <LocationPicker value={location} onChange={setLocation} />
-              <div className="space-y-4 rounded-lg border border-border p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <Label className="font-medium">Kolaborasi {category === 'sales' ? 'dengan Presales' : 'dengan Sales'}</Label>
-                  </div>
-                  <Switch
-                    checked={hasCollaboration}
-                    onCheckedChange={setHasCollaboration}
-                  />
-                </div>
+            </>
+          )}
 
-                {hasCollaboration && (
-                  <div className="space-y-4 animate-slide-up">
-                    <div className="space-y-2">
-                      <Label>Divisi</Label>
-                      <Select
-                        value={collaborationDivision}
-                        onValueChange={(v) => {
-                          setCollaborationDivision(v as 'presales' | 'other');
-                          setCollaborationPersonId('');
-                          setCollaborationPersonName('');
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {category === 'sales' ? (
-                            <>
-                              <SelectItem value="presales">Presales</SelectItem>
-                              <SelectItem value="other">Divisi Lain</SelectItem>
-                            </>
-                          ) : (
-                            <>
-                              <SelectItem value="presales">Sales</SelectItem>
-                              <SelectItem value="other">Divisi Lain</SelectItem>
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
+          {/* Collaboration - Available for all activity types */}
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-medium">Kolaborasi</Label>
+              </div>
+              <Switch
+                checked={hasCollaboration}
+                onCheckedChange={(checked) => {
+                  setHasCollaboration(checked);
+                  if (!checked) {
+                    setCollaborators([]);
+                    setSelectedCollaboratorId('');
+                  }
+                }}
+              />
+            </div>
 
-                    <div className="space-y-2">
-                      <Label>
-                        {collaborationDivision === 'presales' 
-                          ? (category === 'sales' ? 'Pilih Presales' : 'Pilih Sales')
-                          : 'Nama Orang'}
-                      </Label>
-                      {collaborationDivision === 'presales' ? (
-                        <>
-                          <Select value={collaborationPersonId} onValueChange={(v) => {
-                            setCollaborationPersonId(v);
-                            const collabOptions = category === 'sales' ? availablePresalesOptions : availableSalesOptions;
-                            const option = collabOptions.find(p => p.id === v);
-                            setCollaborationPersonName(option?.name || '');
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder={category === 'sales' ? 'Pilih presales' : 'Pilih sales'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(category === 'sales' ? availablePresalesOptions : availableSalesOptions).length === 0 ? (
-                                <div className="p-2 text-sm text-muted-foreground">
-                                  Belum ada anggota {category === 'sales' ? 'presales' : 'sales'} terdaftar
-                                </div>
-                              ) : (
-                                (category === 'sales' ? availablePresalesOptions : availableSalesOptions).map((option) => (
-                                  <SelectItem key={option.id} value={option.id}>
-                                    <div className="flex items-center gap-2">
-                                      {option.name}
-                                      {option.user_id && isUserSuperadmin(option.user_id) && (
-                                        <Shield className="h-3 w-3 text-amber-500" />
-                                      )}
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          {(category === 'sales' ? availablePresalesOptions : availableSalesOptions).length === 0 && (
-                            <Input
-                              value={collaborationPersonName}
-                              onChange={(e) => setCollaborationPersonName(e.target.value)}
-                              placeholder="Atau ketik nama manual"
-                              className="mt-2"
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <Input
-                          value={collaborationPersonName}
-                          onChange={(e) => setCollaborationPersonName(e.target.value)}
-                          placeholder="Masukkan nama orang dari divisi lain"
-                        />
-                      )}
+            {hasCollaboration && (
+              <div className="space-y-4 animate-slide-up">
+                {/* Selected collaborators list */}
+                {collaborators.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Kolaborator terpilih:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {collaborators.map((collab, index) => (
+                        <Badge 
+                          key={index} 
+                          variant="secondary" 
+                          className="flex items-center gap-1 pr-1"
+                        >
+                          <span>{collab.personName}</span>
+                          <span className="text-xs opacity-70">
+                            ({collab.division === 'manager' ? 'Manager' : 
+                              collab.division === 'sales' ? 'Sales' : 
+                              collab.division === 'presales' ? 'Presales' : 'Lainnya'})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCollaborators(prev => prev.filter((_, i) => i !== index))}
+                            className="ml-1 h-4 w-4 rounded-full hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 )}
+
+                {/* Add new collaborator */}
+                <div className="space-y-2">
+                  <Label>Tambah Kolaborator</Label>
+                  <div className="flex gap-2">
+                    <Select 
+                      value={selectedCollaboratorId} 
+                      onValueChange={setSelectedCollaboratorId}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Pilih anggota tim" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCollaboratorOptions.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            Tidak ada anggota yang tersedia
+                          </div>
+                        ) : (
+                          availableCollaboratorOptions.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              <div className="flex items-center gap-2">
+                                {option.name}
+                                <span className="text-xs text-muted-foreground">
+                                  ({option.division === 'manager' ? 'Manager' : 
+                                    option.division === 'sales' ? 'Sales' : 'Presales'})
+                                </span>
+                                {option.user_id && isUserSuperadmin(option.user_id) && (
+                                  <Shield className="h-3 w-3 text-amber-500" />
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        if (selectedCollaboratorId) {
+                          const option = allCollaborationOptions.find(p => p.id === selectedCollaboratorId);
+                          if (option) {
+                            setCollaborators(prev => [...prev, {
+                              personId: option.id,
+                              personName: option.name,
+                              division: option.division as 'sales' | 'presales' | 'manager' | 'other'
+                            }]);
+                            setSelectedCollaboratorId('');
+                          }
+                        }
+                      }}
+                      disabled={!selectedCollaboratorId}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
 
           {/* Reminder */}
           <div className="space-y-4 rounded-lg border border-border p-4">

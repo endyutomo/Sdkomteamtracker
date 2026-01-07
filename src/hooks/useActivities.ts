@@ -1,9 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { DailyActivity, ActivityType, ActivityCategory, Collaboration } from '@/types';
+import { DailyActivity, ActivityType, ActivityCategory, Collaboration, CollaborationPerson } from '@/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import type { TablesInsert } from '@/integrations/supabase/types';
+import type { TablesInsert, Json } from '@/integrations/supabase/types';
+
+// Helper function to parse collaboration data from JSON
+const parseCollaboration = (data: Json | null): Collaboration | undefined => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined;
+  
+  const obj = data as Record<string, unknown>;
+  
+  return {
+    division: (obj.division as 'presales' | 'other') || 'other',
+    personId: obj.personId as string | undefined,
+    personName: (obj.personName as string) || '',
+    collaborators: Array.isArray(obj.collaborators) 
+      ? (obj.collaborators as CollaborationPerson[])
+      : undefined,
+  };
+};
 
 export function useActivities() {
   const [activities, setActivities] = useState<DailyActivity[]>([]);
@@ -36,7 +52,7 @@ export function useActivities() {
         project: a.project ?? undefined,
         opportunity: a.opportunity ?? undefined,
         notes: a.notes || '',
-        collaboration: a.collaboration as unknown as Collaboration | undefined,
+        collaboration: parseCollaboration(a.collaboration),
         photos: a.photos || [],
         latitude: a.latitude ?? undefined,
         longitude: a.longitude ?? undefined,
@@ -104,7 +120,7 @@ export function useActivities() {
         project: data.project ?? undefined,
         opportunity: data.opportunity ?? undefined,
         notes: data.notes || '',
-        collaboration: data.collaboration as unknown as Collaboration | undefined,
+        collaboration: parseCollaboration(data.collaboration),
         photos: data.photos || [],
         latitude: data.latitude ?? undefined,
         longitude: data.longitude ?? undefined,
