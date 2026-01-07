@@ -21,14 +21,15 @@ import {
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2 } from 'lucide-react';
+import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { LocationPicker } from './LocationPicker';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LocationData {
   latitude: number;
@@ -44,6 +45,7 @@ interface ActivityFormProps {
   allProfiles?: Profile[];
   currentProfile?: Profile | null;
   editActivity?: DailyActivity | null;
+  allActivities?: DailyActivity[]; // To check for booking conflicts
 }
 
 const activityTypes: { value: ActivityType; label: string }[] = [
@@ -54,7 +56,7 @@ const activityTypes: { value: ActivityType; label: string }[] = [
   { value: 'other', label: 'Lainnya' },
 ];
 
-export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], currentProfile, editActivity }: ActivityFormProps) {
+export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], currentProfile, editActivity, allActivities = [] }: ActivityFormProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<ActivityCategory>('sales');
   const [personId, setPersonId] = useState('');
@@ -119,8 +121,37 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
     
   const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
+
+  // Get booked collaborators for the selected date (excluding current activity if editing)
+  const getBookedCollaboratorsForDate = (selectedDate: Date): Set<string> => {
+    const booked = new Set<string>();
+    
+    allActivities.forEach(activity => {
+      // Skip current activity if editing
+      if (editActivity && activity.id === editActivity.id) return;
+      
+      // Check if activity is on the same date
+      if (isSameDay(new Date(activity.date), selectedDate)) {
+        // Add all collaborators from this activity
+        if (activity.collaboration?.collaborators) {
+          activity.collaboration.collaborators.forEach(collab => {
+            if (collab.personId) {
+              booked.add(collab.personId);
+            }
+          });
+        } else if (activity.collaboration?.personId) {
+          // Legacy single collaborator
+          booked.add(activity.collaboration.personId);
+        }
+      }
+    });
+    
+    return booked;
+  };
+
+  const bookedCollaborators = getBookedCollaboratorsForDate(date);
   
-  // Filter collaboration options to exclude already selected collaborators and current person
+  // Filter collaboration options to exclude already selected collaborators, current person, and booked collaborators
   const availableCollaboratorOptions = allCollaborationOptions.filter(
     p => p.id !== personId && !collaborators.some(c => c.personId === p.id)
   );
@@ -551,20 +582,39 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                             Tidak ada anggota yang tersedia
                           </div>
                         ) : (
-                          availableCollaboratorOptions.map((option) => (
-                            <SelectItem key={option.id} value={option.id}>
-                              <div className="flex items-center gap-2">
-                                {option.name}
-                                <span className="text-xs text-muted-foreground">
-                                  ({option.division === 'manager' ? 'Manager' : 
-                                    option.division === 'sales' ? 'Sales' : 'Presales'})
-                                </span>
-                                {option.user_id && isUserSuperadmin(option.user_id) && (
-                                  <Shield className="h-3 w-3 text-amber-500" />
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))
+                          availableCollaboratorOptions.map((option) => {
+                            const isBooked = bookedCollaborators.has(option.id);
+                            return (
+                              <SelectItem 
+                                key={option.id} 
+                                value={option.id}
+                                disabled={isBooked}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {option.name}
+                                  <span className="text-xs text-muted-foreground">
+                                    ({option.division === 'manager' ? 'Manager' : 
+                                      option.division === 'sales' ? 'Sales' : 'Presales'})
+                                  </span>
+                                  {option.user_id && isUserSuperadmin(option.user_id) && (
+                                    <Shield className="h-3 w-3 text-amber-500" />
+                                  )}
+                                  {isBooked && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Lock className="h-3 w-3 text-destructive" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Sudah dibooking untuk tanggal ini</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          })
                         )}
                       </SelectContent>
                     </Select>
@@ -576,6 +626,11 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                         if (selectedCollaboratorId) {
                           const option = allCollaborationOptions.find(p => p.id === selectedCollaboratorId);
                           if (option) {
+                            // Check if already booked
+                            if (bookedCollaborators.has(option.id)) {
+                              toast.error(`${option.name} sudah dibooking untuk tanggal ini`);
+                              return;
+                            }
                             setCollaborators(prev => [...prev, {
                               personId: option.id,
                               personName: option.name,
@@ -590,6 +645,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
+                  {bookedCollaborators.size > 0 && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      Anggota dengan tanda kunci sudah dibooking untuk tanggal ini
+                    </p>
+                  )}
                 </div>
               </div>
             )}

@@ -161,8 +161,8 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           onClick={() => openDetail('Kolaborasi', 'collaboration')}
         />
         <StatCard
-          title="Tim"
-          value={salesCount + presalesCount}
+          title="Tim Terdaftar"
+          value={allProfiles.length}
           subtitle={`${salesCount} sales, ${presalesCount} presales`}
           icon={TrendingUp}
           variant="primary"

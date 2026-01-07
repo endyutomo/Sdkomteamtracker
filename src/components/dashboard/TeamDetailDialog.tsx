@@ -90,9 +90,8 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
 
   const handleSelectProfile = async (profile: Profile) => {
     setSelectedProfile(profile);
-    if (isManager) {
-      await fetchUserEmail(profile.user_id);
-    }
+    // Fetch email for all users, not just managers
+    await fetchUserEmail(profile.user_id);
   };
 
   const handleStartEditEmail = () => {
@@ -152,13 +151,8 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
   const ProfileCard = ({ profile }: { profile: Profile }) => (
     <button
       type="button"
-      onClick={() => isManager && handleSelectProfile(profile)}
-      className={`w-full flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 text-left transition-all ${
-        isManager 
-          ? 'hover:bg-muted hover:border-primary/30 cursor-pointer' 
-          : 'cursor-default'
-      }`}
-      disabled={!isManager}
+      onClick={() => handleSelectProfile(profile)}
+      className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 text-left transition-all hover:bg-muted hover:border-primary/30 cursor-pointer"
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
         <User className="h-5 w-5 text-primary" />
@@ -302,9 +296,7 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
           <DialogDescription>
             {selectedProfile 
               ? 'Detail informasi anggota tim' 
-              : isManager 
-                ? 'Klik nama anggota untuk melihat detail profil' 
-                : 'Daftar anggota tim'}
+              : 'Klik nama anggota untuk melihat detail profil'}
           </DialogDescription>
         </DialogHeader>
 

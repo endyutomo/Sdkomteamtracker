@@ -131,10 +131,63 @@ export function useActivities() {
 
       setActivities((prev) => [newActivity, ...prev]);
       toast.success('Aktivitas berhasil ditambahkan');
+
+      // Send notifications to collaborators
+      if (activity.collaboration?.collaborators && activity.collaboration.collaborators.length > 0) {
+        await sendCollaborationNotifications(
+          activity.collaboration.collaborators,
+          activity.personName,
+          activity.customerName,
+          activity.activityType,
+          activity.date,
+          data.id
+        );
+      }
+
       return newActivity;
     } catch (error) {
       console.error('Error adding activity:', error);
       toast.error('Gagal menambahkan aktivitas');
+    }
+  };
+
+  // Send notifications to collaborators
+  const sendCollaborationNotifications = async (
+    collaborators: CollaborationPerson[],
+    creatorName: string,
+    customerName: string,
+    activityType: ActivityType,
+    activityDate: Date,
+    activityId: string
+  ) => {
+    const activityTypeLabels: Record<string, string> = {
+      visit: 'Kunjungan',
+      call: 'Telepon',
+      email: 'Email',
+      meeting: 'Meeting',
+      other: 'Lainnya'
+    };
+
+    for (const collab of collaborators) {
+      // Find the user_id for this collaborator
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('id', collab.personId)
+        .single();
+
+      if (profile?.user_id) {
+        const formattedDate = activityDate instanceof Date 
+          ? activityDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+          : new Date(activityDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        await supabase.from('notifications').insert({
+          user_id: profile.user_id,
+          activity_id: activityId,
+          title: `Kolaborasi: ${activityTypeLabels[activityType] || activityType}`,
+          message: `${creatorName} menambahkan Anda sebagai kolaborator untuk ${activityTypeLabels[activityType].toLowerCase()} dengan ${customerName} pada ${formattedDate}.`,
+        });
+      }
     }
   };
 
