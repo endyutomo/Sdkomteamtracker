@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useProfile } from './useProfile';
 import { toast } from '@/hooks/use-toast';
+import { playChimeSound } from '@/utils/notificationSound';
 
 export interface Message {
   id: string;
@@ -173,6 +174,9 @@ export function useChat() {
           
           // Increment unread count
           setUnreadCount((prev) => prev + 1);
+          
+          // Play notification sound
+          playChimeSound();
           
           // Show toast notification
           toast({
