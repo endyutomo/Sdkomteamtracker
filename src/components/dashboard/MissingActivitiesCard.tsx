@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, ChevronDown, ChevronUp, Calendar, User } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, Calendar, User, Bell, PlusCircle } from 'lucide-react';
 import { DailyActivity } from '@/types';
 import { Profile } from '@/hooks/useProfile';
 import { 
@@ -18,22 +18,37 @@ import {
   endOfYear,
   isWeekend, 
   isBefore,
-  startOfDay
+  startOfDay,
+  isToday,
+  setHours,
+  setMinutes,
+  setSeconds
 } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 interface MissingActivity {
   profileId: string;
   profileName: string;
+  userId: string;
   division: string;
   date: Date;
   dayName: string;
   status: string;
+  canFillActivity: boolean;
 }
 
 interface MissingActivitiesCardProps {
   activities: DailyActivity[];
   allProfiles: Profile[];
+  currentUserId?: string;
+  onAddActivity?: () => void;
+}
+
+// Check if current time is before 12:00 PM (noon)
+function isBeforeNoon(): boolean {
+  const now = new Date();
+  const noon = setSeconds(setMinutes(setHours(new Date(), 12), 0), 0);
+  return isBefore(now, noon);
 }
 
 function getMissingActivities(
@@ -43,13 +58,17 @@ function getMissingActivities(
   endDate: Date
 ): MissingActivity[] {
   const today = startOfDay(new Date());
+  const now = new Date();
+  const noon = setSeconds(setMinutes(setHours(new Date(), 12), 0), 0);
+  const canFillToday = isBefore(now, noon);
+  
   const salesPresalesProfiles = profiles.filter(
     p => p.division === 'sales' || p.division === 'presales'
   );
 
   // Get all weekdays in the date range
   const allDays = eachDayOfInterval({ start: startDate, end: endDate })
-    .filter(date => !isWeekend(date) && isBefore(date, today) || format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+    .filter(date => !isWeekend(date) && (isBefore(date, today) || format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')));
 
   // Create a map of activities by user_id and date
   const activityMap = new Map<string, Set<string>>();
@@ -70,15 +89,20 @@ function getMissingActivities(
       
       const dateStr = format(date, 'yyyy-MM-dd');
       const hasActivity = activityMap.get(profile.user_id)?.has(dateStr);
+      const isTodayDate = isToday(date);
 
       if (!hasActivity) {
+        // For today's date, only show if it's after noon OR before noon (with clickable option)
+        // For past dates, always show
         missing.push({
           profileId: profile.id,
           profileName: profile.name,
+          userId: profile.user_id,
           division: profile.division,
           date: date,
           dayName: format(date, 'EEEE', { locale: id }),
-          status: 'Belum ada aktivitas'
+          status: 'Belum ada aktivitas',
+          canFillActivity: isTodayDate && canFillToday
         });
       }
     });
@@ -92,11 +116,12 @@ function getMissingActivities(
   });
 }
 
-export function MissingActivitiesCard({ activities, allProfiles }: MissingActivitiesCardProps) {
+export function MissingActivitiesCard({ activities, allProfiles, currentUserId, onAddActivity }: MissingActivitiesCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   const today = new Date();
+  const canFillNow = isBeforeNoon();
 
   // Get missing activities for different periods
   const dailyMissing = useMemo(() => {
@@ -179,6 +204,33 @@ export function MissingActivitiesCard({ activities, allProfiles }: MissingActivi
           </Badge>
         </div>
 
+        {/* Notification for current user if they haven't filled activity today */}
+        {currentUserId && dailyMissing.some(m => m.userId === currentUserId) && (
+          <div className={`p-3 rounded-lg border ${canFillNow ? 'bg-warning/10 border-warning/30' : 'bg-muted border-border'}`}>
+            <div className="flex items-center gap-2">
+              <Bell className={`h-4 w-4 ${canFillNow ? 'text-warning' : 'text-muted-foreground'}`} />
+              <span className={`text-sm font-medium ${canFillNow ? 'text-warning' : 'text-muted-foreground'}`}>
+                Segera isi aktivitas hari ini!
+              </span>
+            </div>
+            {canFillNow ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full gap-2 border-warning text-warning hover:bg-warning/10"
+                onClick={onAddActivity}
+              >
+                <PlusCircle className="h-4 w-4" />
+                Isi Aktivitas Sekarang
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Batas waktu pengisian sudah lewat (12:00 siang)
+              </p>
+            )}
+          </div>
+        )}
+
         {currentMissing.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground text-sm">
             Semua tim sudah mengisi aktivitas
@@ -210,9 +262,23 @@ export function MissingActivitiesCard({ activities, allProfiles }: MissingActivi
                         </div>
                       </div>
                     </div>
-                    <Badge variant="destructive" className="text-xs whitespace-nowrap">
-                      {item.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {/* Show fill button for current user's own missing activity if before noon */}
+                      {item.userId === currentUserId && item.canFillActivity && onAddActivity && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-xs gap-1 border-warning text-warning hover:bg-warning/10"
+                          onClick={onAddActivity}
+                        >
+                          <PlusCircle className="h-3 w-3" />
+                          Isi
+                        </Button>
+                      )}
+                      <Badge variant="destructive" className="text-xs whitespace-nowrap">
+                        {item.status}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </div>

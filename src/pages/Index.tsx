@@ -212,6 +212,12 @@ const Index = () => {
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
                 isManager={isManager}
+                currentUserId={user?.id}
+                currentDivision={profile.division}
+                onAddActivity={() => {
+                  setEditActivity(null);
+                  setShowActivityForm(true);
+                }}
               />
             )}
 
