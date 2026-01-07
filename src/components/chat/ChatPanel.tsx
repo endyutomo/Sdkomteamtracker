@@ -32,11 +32,13 @@ export function ChatPanel() {
     messages,
     activeConversation,
     loading,
+    unreadCount,
     createDirectConversation,
     createDivisionConversation,
     sendMessage,
     openConversation,
     closeConversation,
+    clearUnread,
   } = useChat();
 
   useEffect(() => {
@@ -101,15 +103,27 @@ export function ChatPanel() {
     return true;
   });
 
+  const handleOpenChat = () => {
+    setIsOpen(true);
+    clearUnread();
+  };
+
   if (!isOpen) {
     return (
-      <Button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        size="icon"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </Button>
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={handleOpenChat}
+          className="h-14 w-14 rounded-full shadow-lg relative"
+          size="icon"
+        >
+          <MessageCircle className="h-6 w-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium animate-pulse">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </div>
     );
   }
 

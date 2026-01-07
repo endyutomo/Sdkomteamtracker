@@ -35,6 +35,7 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeConversation, setActiveConversation] = useState<ConversationWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
@@ -144,6 +145,53 @@ export function useChat() {
       supabase.removeChannel(channel);
     };
   }, [activeConversation, allProfiles]);
+
+  // Subscribe to all new messages for notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const notificationChannel = supabase
+      .channel('all-messages-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          
+          // Don't notify for own messages
+          if (newMessage.sender_id === user.id) return;
+          
+          // Don't notify if viewing this conversation
+          if (activeConversation?.id === newMessage.conversation_id) return;
+          
+          const senderProfile = allProfiles.find((p) => p.user_id === newMessage.sender_id);
+          const senderName = senderProfile?.name || 'Seseorang';
+          
+          // Increment unread count
+          setUnreadCount((prev) => prev + 1);
+          
+          // Show toast notification
+          toast({
+            title: `Pesan baru dari ${senderName}`,
+            description: newMessage.content.length > 50 
+              ? newMessage.content.substring(0, 50) + '...' 
+              : newMessage.content,
+          });
+          
+          // Refresh conversations to update last message
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(notificationChannel);
+    };
+  }, [user, activeConversation, allProfiles, fetchConversations]);
 
   useEffect(() => {
     if (allProfiles.length > 0) {
@@ -281,6 +329,7 @@ export function useChat() {
 
   const openConversation = async (conversation: ConversationWithDetails) => {
     setActiveConversation(conversation);
+    setUnreadCount(0); // Reset unread when opening a conversation
     await fetchMessages(conversation.id);
   };
 
@@ -289,16 +338,22 @@ export function useChat() {
     setMessages([]);
   };
 
+  const clearUnread = () => {
+    setUnreadCount(0);
+  };
+
   return {
     conversations,
     messages,
     activeConversation,
     loading,
+    unreadCount,
     createDirectConversation,
     createDivisionConversation,
     sendMessage,
     openConversation,
     closeConversation,
+    clearUnread,
     refetch: fetchConversations,
   };
 }
