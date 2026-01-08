@@ -189,7 +189,10 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
       {/* Charts and Recent Activities */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ActivityChart activities={activities} />
-        <RecentActivities activities={activities} />
+        <RecentActivities 
+          activities={activities} 
+          canViewDetail={isManager}
+        />
       </div>
 
       {/* Missing Activities Card - Visible for Manager and Sales/Presales */}
