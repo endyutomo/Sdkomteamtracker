@@ -20,6 +20,7 @@ export interface Collaboration {
   personId?: string;
   personName: string;
   collaborators?: CollaborationPerson[];
+  bookingDate?: Date | string; // Tanggal booking kolaborasi
 }
 
 export type ActivityCategory = 'sales' | 'presales';
@@ -31,7 +32,8 @@ export interface DailyActivity {
   category: ActivityCategory;
   personId: string;
   personName: string;
-  activityType: ActivityType;
+  activityType: ActivityType; // Single type for backward compatibility
+  activityTypes?: ActivityType[]; // Multiple activity types
   customerName: string;
   project?: string;
   opportunity?: string;
