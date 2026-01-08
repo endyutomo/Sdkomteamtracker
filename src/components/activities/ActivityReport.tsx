@@ -54,7 +54,6 @@ import { MissingActivitiesReport } from './MissingActivitiesReport';
 interface ActivityReportProps {
   activities: DailyActivity[];
   allProfiles: Profile[];
-  canViewDetail?: boolean; // Only manager/admin can view detail
 }
 
 const activityTypeLabels: Record<string, string> = {
@@ -96,7 +95,7 @@ const years = Array.from({ length: 5 }, (_, i) => ({
   label: String(currentYear - i),
 }));
 
-export function ActivityReport({ activities, allProfiles, canViewDetail = false }: ActivityReportProps) {
+export function ActivityReport({ activities, allProfiles }: ActivityReportProps) {
   const [selectedActivity, setSelectedActivity] = useState<DailyActivity | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'date' | 'month' | 'year'>('all');
@@ -170,33 +169,23 @@ export function ActivityReport({ activities, allProfiles, canViewDetail = false 
       dataToExport = presalesActivities;
     }
 
-    const exportData = dataToExport.map(activity => {
-      // Get activity types display
-      const activityTypesDisplay = activity.activityTypes && activity.activityTypes.length > 0
-        ? activity.activityTypes.map(t => activityTypeLabels[t] || t).join(', ')
-        : activityTypeLabels[activity.activityType] || activity.activityType;
-      
-      return {
-        'Tanggal': format(new Date(activity.date), 'dd/MM/yyyy', { locale: id }),
-        'Waktu Input': format(new Date(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: id }),
-        'Kategori': activity.category === 'sales' ? 'Sales' : 'Presales',
-        'Nama Person': activity.personName,
-        'Tipe Aktivitas': activityTypesDisplay,
-        'Nama Customer': activity.customerName,
-        'Project': activity.project || '-',
-        'Opportunity': activity.opportunity || '-',
-        'Catatan': activity.notes || '-',
-        'Latitude': activity.latitude || '-',
-        'Longitude': activity.longitude || '-',
-        'Nama Lokasi': activity.locationName || '-',
-        'Kolaborasi Dengan': activity.collaboration?.personName || '-',
-        'Divisi Kolaborasi': activity.collaboration?.division || '-',
-        'Tanggal Booking': activity.collaboration?.bookingDate 
-          ? format(new Date(activity.collaboration.bookingDate), 'dd/MM/yyyy', { locale: id }) 
-          : '-',
-        'Jumlah Foto': activity.photos?.length || 0,
-      };
-    });
+    const exportData = dataToExport.map(activity => ({
+      'Tanggal': format(new Date(activity.date), 'dd/MM/yyyy', { locale: id }),
+      'Waktu Input': format(new Date(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: id }),
+      'Kategori': activity.category === 'sales' ? 'Sales' : 'Presales',
+      'Nama Person': activity.personName,
+      'Tipe Aktivitas': activityTypeLabels[activity.activityType] || activity.activityType,
+      'Nama Customer': activity.customerName,
+      'Project': activity.project || '-',
+      'Opportunity': activity.opportunity || '-',
+      'Catatan': activity.notes || '-',
+      'Latitude': activity.latitude || '-',
+      'Longitude': activity.longitude || '-',
+      'Nama Lokasi': activity.locationName || '-',
+      'Kolaborasi Dengan': activity.collaboration?.personName || '-',
+      'Divisi Kolaborasi': activity.collaboration?.division || '-',
+      'Jumlah Foto': activity.photos?.length || 0,
+    }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
@@ -215,127 +204,96 @@ export function ActivityReport({ activities, allProfiles, canViewDetail = false 
     XLSX.writeFile(workbook, fileName);
   };
 
-  // Helper to get activity types display
-  const getActivityTypesDisplay = (activity: DailyActivity): string => {
-    if (activity.activityTypes && activity.activityTypes.length > 0) {
-      return activity.activityTypes.map(t => activityTypeLabels[t] || t).join(', ');
-    }
-    return activityTypeLabels[activity.activityType] || activity.activityType;
-  };
-
-  const renderActivityTable = (activityList: DailyActivity[], division: string) => {
-    // Limit to 5 items for compact view
-    const displayList = activityList.slice(0, 5);
-    const hasMore = activityList.length > 5;
-    const [showAll, setShowAll] = useState(false);
-    const listToShow = showAll ? activityList : displayList;
-    
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Badge variant={division === 'sales' ? 'default' : 'secondary'}>
-              {activityList.length} aktivitas
-            </Badge>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportToExcel(division as 'sales' | 'presales')}
-            className="gap-2"
-            disabled={activityList.length === 0}
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Export Excel
-          </Button>
+  const renderActivityTable = (activityList: DailyActivity[], division: string) => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge variant={division === 'sales' ? 'default' : 'secondary'}>
+            {activityList.length} aktivitas
+          </Badge>
         </div>
-
-        {activityList.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Tidak ada data aktivitas
-          </div>
-        ) : (
-          <>
-            <div className="rounded-lg border overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-[80px]">Tanggal</TableHead>
-                      <TableHead>Person</TableHead>
-                      <TableHead>Tipe</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Lokasi</TableHead>
-                      {canViewDetail && (
-                        <TableHead className="w-[60px] text-center">Detail</TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {listToShow.map(activity => (
-                      <TableRow key={activity.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium text-xs">
-                          {format(new Date(activity.date), 'dd MMM', { locale: id })}
-                        </TableCell>
-                        <TableCell className="text-sm">{activity.personName}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {activityTypeIcons[activity.activityType]}
-                            <span className="text-xs">
-                              {activity.activityTypes && activity.activityTypes.length > 1 
-                                ? `${activityTypeLabels[activity.activityTypes[0]]} +${activity.activityTypes.length - 1}`
-                                : activityTypeLabels[activity.activityType]
-                              }
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">{activity.customerName}</TableCell>
-                        <TableCell>
-                          {activity.locationName ? (
-                            <div className="flex items-center gap-1 text-green-600">
-                              <MapPin className="h-3 w-3" />
-                              <span className="text-xs truncate max-w-[100px]" title={activity.locationName}>
-                                {activity.locationName.split(',')[0]}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        {canViewDetail && (
-                          <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedActivity(activity)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-            {hasMore && (
-              <div className="flex justify-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAll(!showAll)}
-                  className="text-primary gap-1"
-                >
-                  {showAll ? 'Tutup' : `Lihat Semua (${activityList.length})`}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => exportToExcel(division as 'sales' | 'presales')}
+          className="gap-2"
+          disabled={activityList.length === 0}
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Export Excel
+        </Button>
       </div>
-    );
-  };
+
+      {activityList.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Tidak ada data aktivitas
+        </div>
+      ) : (
+        <div className="rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[100px]">Tanggal</TableHead>
+                  <TableHead>Person</TableHead>
+                  <TableHead>Tipe</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Opportunity</TableHead>
+                  <TableHead>Lokasi</TableHead>
+                  <TableHead className="w-[80px] text-center">Detail</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activityList.map(activity => (
+                  <TableRow key={activity.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">
+                      {format(new Date(activity.date), 'dd MMM yy', { locale: id })}
+                    </TableCell>
+                    <TableCell>{activity.personName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        {activityTypeIcons[activity.activityType]}
+                        <span className="text-sm">{activityTypeLabels[activity.activityType]}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{activity.customerName}</TableCell>
+                    <TableCell>
+                      <span className="text-sm">{activity.project || '-'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{activity.opportunity || '-'}</span>
+                    </TableCell>
+                    <TableCell>
+                      {activity.locationName ? (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <MapPin className="h-3 w-3" />
+                          <span className="text-xs truncate max-w-[150px]" title={activity.locationName}>
+                            {activity.locationName.split(',')[0]}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedActivity(activity)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -634,13 +592,9 @@ export function ActivityReport({ activities, allProfiles, canViewDetail = false 
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Tipe Aktivitas</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(selectedActivity.activityTypes || [selectedActivity.activityType]).map((type) => (
-                      <div key={type} className="flex items-center gap-1 text-sm">
-                        {activityTypeIcons[type]}
-                        <span>{activityTypeLabels[type]}</span>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-1">
+                    {activityTypeIcons[selectedActivity.activityType]}
+                    <span>{activityTypeLabels[selectedActivity.activityType]}</span>
                   </div>
                 </div>
               </div>
@@ -715,11 +669,6 @@ export function ActivityReport({ activities, allProfiles, canViewDetail = false 
                       ({selectedActivity.collaboration.division === 'presales' ? 'Presales' : 'Divisi Lain'})
                     </span>
                   </p>
-                  {selectedActivity.collaboration.bookingDate && (
-                    <p className="text-xs text-muted-foreground">
-                      Tanggal Booking: {format(new Date(selectedActivity.collaboration.bookingDate), 'dd MMMM yyyy', { locale: id })}
-                    </p>
-                  )}
                 </div>
               )}
 

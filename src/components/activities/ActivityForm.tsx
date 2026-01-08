@@ -57,10 +57,10 @@ const activityTypes: { value: ActivityType; label: string }[] = [
 ];
 
 export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], currentProfile, editActivity, allActivities = [] }: ActivityFormProps) {
-  const [date] = useState<Date>(new Date()); // Fixed to today, not editable
+  const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<ActivityCategory>('sales');
   const [personId, setPersonId] = useState('');
-  const [selectedActivityTypes, setSelectedActivityTypes] = useState<ActivityType[]>(['visit']); // Multi-select
+  const [activityType, setActivityType] = useState<ActivityType>('visit');
   const [customerName, setCustomerName] = useState('');
   const [project, setProject] = useState('');
   const [opportunity, setOpportunity] = useState('');
@@ -68,7 +68,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [hasCollaboration, setHasCollaboration] = useState(false);
   const [collaborators, setCollaborators] = useState<CollaborationPerson[]>([]);
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState('');
-  const [bookingDate, setBookingDate] = useState<Date | undefined>(); // New: booking date for collaboration
   const [photos, setPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | undefined>();
   const [hasReminder, setHasReminder] = useState(false);
@@ -76,18 +75,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [reminderTime, setReminderTime] = useState('09:00');
   const [superadminIds, setSuperadminIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Toggle activity type selection
-  const toggleActivityType = (type: ActivityType) => {
-    setSelectedActivityTypes(prev => {
-      if (prev.includes(type)) {
-        // Don't allow removing the last type
-        if (prev.length === 1) return prev;
-        return prev.filter(t => t !== type);
-      }
-      return [...prev, type];
-    });
-  };
 
   // Fetch superadmin IDs
   useEffect(() => {
@@ -189,15 +176,10 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
 
   useEffect(() => {
     if (editActivity) {
-      // Note: date is fixed to today for new activities, but we load it for editing
+      setDate(new Date(editActivity.date));
       setCategory(editActivity.category || 'sales');
       setPersonId(editActivity.personId || '');
-      // Support multiple activity types
-      if (editActivity.activityTypes && editActivity.activityTypes.length > 0) {
-        setSelectedActivityTypes(editActivity.activityTypes);
-      } else {
-        setSelectedActivityTypes([editActivity.activityType]);
-      }
+      setActivityType(editActivity.activityType);
       setCustomerName(editActivity.customerName);
       setProject(editActivity.project || '');
       setOpportunity(editActivity.opportunity || '');
@@ -225,10 +207,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             division: editActivity.collaboration.division === 'presales' ? 'presales' : 'other'
           }]);
         }
-        // Load booking date
-        if (editActivity.collaboration.bookingDate) {
-          setBookingDate(new Date(editActivity.collaboration.bookingDate));
-        }
       }
       if (editActivity.reminderAt) {
         setHasReminder(true);
@@ -248,10 +226,10 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   }, [editActivity, open]);
 
   const resetForm = () => {
-    // date is fixed to today, no need to reset
+    setDate(new Date());
     setCategory('sales');
     setPersonId('');
-    setSelectedActivityTypes(['visit']);
+    setActivityType('visit');
     setCustomerName('');
     setProject('');
     setOpportunity('');
@@ -259,7 +237,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setHasCollaboration(false);
     setCollaborators([]);
     setSelectedCollaboratorId('');
-    setBookingDate(undefined);
     setPhotos([]);
     setLocation(undefined);
     setHasReminder(false);
@@ -307,11 +284,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       return;
     }
 
-    if (selectedActivityTypes.length === 0) {
-      toast.error('Pilih minimal satu tipe aktivitas');
-      return;
-    }
-
     // Location is mandatory for all activity types
     if (!location || !location.locationName) {
       toast.error('Lokasi dan alamat wajib diisi');
@@ -329,7 +301,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
         personId: firstCollab.personId,
         personName: firstCollab.personName,
         collaborators: collaborators,
-        bookingDate: bookingDate, // Add booking date
       };
     }
 
@@ -346,14 +317,13 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       category,
       personId,
       personName: selectedOption?.name || '',
-      activityType: selectedActivityTypes[0], // Primary type for backward compatibility
-      activityTypes: selectedActivityTypes, // All selected types
+      activityType,
       customerName: customerName.trim(),
       project: project.trim() || undefined,
       opportunity: opportunity.trim() || undefined,
       notes: notes.trim(),
       collaboration,
-      photos: selectedActivityTypes.includes('visit') ? photos : undefined,
+      photos: activityType === 'visit' ? photos : undefined,
       latitude: location?.latitude,
       longitude: location?.longitude,
       locationName: location?.locationName,
@@ -391,17 +361,31 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             </Select>
           </div>
 
-          {/* Date - Fixed to today, not editable */}
+          {/* Date */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              Tanggal
-              <Lock className="h-3 w-3 text-muted-foreground" />
-            </Label>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/50">
-              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{format(date, 'EEEE, dd MMMM yyyy', { locale: id })}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Tanggal aktivitas otomatis hari ini</p>
+            <Label>Tanggal</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !date && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, 'PPP', { locale: id }) : 'Pilih tanggal'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(d) => d && setDate(d)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Person */}
@@ -432,34 +416,21 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             </Select>
           </div>
 
-          {/* Activity Types - Multi-select */}
+          {/* Activity Type */}
           <div className="space-y-2">
-            <Label>Tipe Aktivitas <span className="text-xs text-muted-foreground">(pilih satu atau lebih)</span></Label>
-            <div className="flex flex-wrap gap-2">
-              {activityTypes.map((type) => {
-                const isSelected = selectedActivityTypes.includes(type.value);
-                return (
-                  <Button
-                    key={type.value}
-                    type="button"
-                    variant={isSelected ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleActivityType(type.value)}
-                    className={cn(
-                      'gap-1.5',
-                      isSelected && 'bg-primary text-primary-foreground'
-                    )}
-                  >
+            <Label>Tipe Aktivitas</Label>
+            <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {activityTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
                     {type.label}
-                  </Button>
-                );
-              })}
-            </div>
-            {selectedActivityTypes.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Dipilih: {selectedActivityTypes.map(t => activityTypes.find(at => at.value === t)?.label).join(', ')}
-              </p>
-            )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Customer Name - Mandatory */}
@@ -493,8 +464,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             />
           </div>
 
-          {/* Photo Upload (only when visit is selected) */}
-          {selectedActivityTypes.includes('visit') && (
+          {/* Photo Upload (only for visit) */}
+          {activityType === 'visit' && (
             <div className="space-y-3 rounded-lg border border-border p-4">
               <div className="flex items-center gap-2">
                 <Camera className="h-4 w-4 text-muted-foreground" />
@@ -561,7 +532,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                   if (!checked) {
                     setCollaborators([]);
                     setSelectedCollaboratorId('');
-                    setBookingDate(undefined);
                   }
                 }}
               />
@@ -684,35 +654,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                       <Lock className="h-3 w-3" />
                       Anggota dengan tanda kunci sudah dibooking untuk tanggal ini
                     </p>
-                  )}
-
-                  {/* Booking Date for Collaboration */}
-                  {collaborators.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-border mt-3">
-                      <Label>Tanggal Booking Kolaborasi</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !bookingDate && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {bookingDate ? format(bookingDate, 'PPP', { locale: id }) : 'Pilih tanggal booking'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={bookingDate}
-                            onSelect={(d) => d && setBookingDate(d)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
                   )}
                 </div>
               </div>
