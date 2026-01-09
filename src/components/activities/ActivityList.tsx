@@ -4,6 +4,7 @@ import { format, differenceInHours } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X, Eye, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getFirstActivityType, getActivityTypes, displayCustomerNames } from '@/utils/activityHelpers';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -113,7 +114,9 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
   return (
     <div className="space-y-4">
       {sortedActivities.map((activity, index) => {
-        const Icon = activityIcons[activity.activityType];
+        const firstType = getFirstActivityType(activity.activityType);
+        const allTypes = getActivityTypes(activity.activityType);
+        const Icon = activityIcons[firstType];
         return (
           <div
             key={activity.id}
@@ -122,15 +125,17 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-4">
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${activityColors[activity.activityType]}`}>
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${activityColors[firstType]}`}>
                   <Icon className="h-6 w-6" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-foreground">{activity.customerName}</h3>
-                    <Badge variant="outline" className="text-xs">
-                      {activityLabels[activity.activityType]}
-                    </Badge>
+                    <h3 className="font-semibold text-foreground">{displayCustomerNames(activity.customerName)}</h3>
+                    {allTypes.map((type, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {activityLabels[type]}
+                      </Badge>
+                    ))}
                     <Badge variant={activity.category === 'presales' ? 'secondary' : 'default'} className="text-xs">
                       {activity.category === 'presales' ? 'Presales' : 'Sales'}
                     </Badge>
@@ -143,7 +148,7 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                   </p>
                   
                   {/* Photos for visit activity */}
-                  {activity.activityType === 'visit' && activity.photos && activity.photos.length > 0 && (
+                  {allTypes.includes('visit') && activity.photos && activity.photos.length > 0 && (
                     <div className="mt-3">
                       <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground">
                         <ImageIcon className="h-3 w-3" />
