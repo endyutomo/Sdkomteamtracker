@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { MapPin, Phone, Mail, Users, Calendar, MoreVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { getFirstActivityType, displayCustomerNames, displayActivityTypes } from '@/utils/activityHelpers';
 
 interface RecentActivitiesProps {
   activities: DailyActivity[];
@@ -47,8 +46,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
       ) : (
         <div className="space-y-4">
           {recentActivities.map((activity) => {
-            const firstType = getFirstActivityType(activity.activityType);
-            const Icon = activityIcons[firstType];
+            const Icon = activityIcons[activity.activityType];
             return (
               <div
                 key={activity.id}
@@ -60,9 +58,9 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-medium text-foreground">{displayCustomerNames(activity.customerName)}</p>
+                      <p className="font-medium text-foreground">{activity.customerName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {activity.personName} • {displayActivityTypes(activity.activityType, activityLabels)} • {activity.category === 'presales' ? 'Presales' : 'Sales'}
+                        {activity.personName} • {activityLabels[activity.activityType]} • {activity.category === 'presales' ? 'Presales' : 'Sales'}
                       </p>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">

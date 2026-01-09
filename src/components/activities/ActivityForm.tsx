@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -31,7 +30,6 @@ import { LocationPicker } from './LocationPicker';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getFirstActivityType, getActivityTypes, getFirstCustomerName, getCustomerNames } from '@/utils/activityHelpers';
 
 interface LocationData {
   latitude: number;
@@ -62,8 +60,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<ActivityCategory>('sales');
   const [personId, setPersonId] = useState('');
-  const [selectedActivityTypes, setSelectedActivityTypes] = useState<ActivityType[]>(['visit']);
-  const [customerNames, setCustomerNames] = useState<string[]>(['']);
+  const [activityType, setActivityType] = useState<ActivityType>('visit');
+  const [customerName, setCustomerName] = useState('');
   const [project, setProject] = useState('');
   const [opportunity, setOpportunity] = useState('');
   const [notes, setNotes] = useState('');
@@ -77,34 +75,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [reminderTime, setReminderTime] = useState('09:00');
   const [superadminIds, setSuperadminIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Toggle activity type selection
-  const toggleActivityType = (type: ActivityType) => {
-    setSelectedActivityTypes(prev => {
-      if (prev.includes(type)) {
-        // Don't allow empty selection
-        if (prev.length === 1) return prev;
-        return prev.filter(t => t !== type);
-      }
-      return [...prev, type];
-    });
-  };
-
-  // Add new customer name field
-  const addCustomerName = () => {
-    setCustomerNames(prev => [...prev, '']);
-  };
-
-  // Remove customer name field
-  const removeCustomerName = (index: number) => {
-    if (customerNames.length === 1) return;
-    setCustomerNames(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Update customer name at index
-  const updateCustomerName = (index: number, value: string) => {
-    setCustomerNames(prev => prev.map((name, i) => i === index ? value : name));
-  };
 
   // Fetch superadmin IDs
   useEffect(() => {
@@ -209,12 +179,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       setDate(new Date(editActivity.date));
       setCategory(editActivity.category || 'sales');
       setPersonId(editActivity.personId || '');
-      // Handle both single and array activity types
-      const types = getActivityTypes(editActivity.activityType);
-      setSelectedActivityTypes(types);
-      // Handle both single and array customer names
-      const names = getCustomerNames(editActivity.customerName);
-      setCustomerNames(names.length > 0 ? names : ['']);
+      setActivityType(editActivity.activityType);
+      setCustomerName(editActivity.customerName);
       setProject(editActivity.project || '');
       setOpportunity(editActivity.opportunity || '');
       setNotes(editActivity.notes);
@@ -263,8 +229,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setDate(new Date());
     setCategory('sales');
     setPersonId('');
-    setSelectedActivityTypes(['visit']);
-    setCustomerNames(['']);
+    setActivityType('visit');
+    setCustomerName('');
     setProject('');
     setOpportunity('');
     setNotes('');
@@ -313,15 +279,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       return;
     }
     
-    // Filter empty customer names
-    const validCustomerNames = customerNames.filter(name => name.trim());
-    if (validCustomerNames.length === 0) {
+    if (!customerName.trim()) {
       toast.error('Nama customer wajib diisi');
-      return;
-    }
-
-    if (selectedActivityTypes.length === 0) {
-      toast.error('Pilih minimal satu tipe aktivitas');
       return;
     }
 
@@ -341,10 +300,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
         division: firstCollab.division === 'sales' || firstCollab.division === 'manager' ? 'presales' : firstCollab.division as 'presales' | 'other',
         personId: firstCollab.personId,
         personName: firstCollab.personName,
-        collaborators: collaborators.map(c => ({
-          ...c,
-          bookedAt: date // Add booking date
-        })),
+        collaborators: collaborators,
       };
     }
 
@@ -356,26 +312,18 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       reminderAt.setHours(hours, minutes, 0, 0);
     }
 
-    // Determine which value to send based on count
-    const activityTypeValue = selectedActivityTypes.length === 1 
-      ? selectedActivityTypes[0] 
-      : selectedActivityTypes;
-    const customerNameValue = validCustomerNames.length === 1 
-      ? validCustomerNames[0] 
-      : validCustomerNames;
-
     onSubmit({
       date,
       category,
       personId,
       personName: selectedOption?.name || '',
-      activityType: activityTypeValue,
-      customerName: customerNameValue,
+      activityType,
+      customerName: customerName.trim(),
       project: project.trim() || undefined,
       opportunity: opportunity.trim() || undefined,
       notes: notes.trim(),
       collaboration,
-      photos: selectedActivityTypes.includes('visit') ? photos : undefined,
+      photos: activityType === 'visit' ? photos : undefined,
       latitude: location?.latitude,
       longitude: location?.longitude,
       locationName: location?.locationName,
@@ -468,73 +416,32 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             </Select>
           </div>
 
-          {/* Customer & Activity Type - Combined Section */}
-          <div className="space-y-4 rounded-lg border border-border p-4">
-            <Label className="font-medium">Customer & Tipe Aktivitas</Label>
-            
-            {/* Activity Types - Multi Select */}
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Tipe Aktivitas (pilih satu atau lebih)</Label>
-              <div className="flex flex-wrap gap-2">
+          {/* Activity Type */}
+          <div className="space-y-2">
+            <Label>Tipe Aktivitas</Label>
+            <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 {activityTypes.map((type) => (
-                  <div
-                    key={type.value}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors",
-                      selectedActivityTypes.includes(type.value)
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-background border-border hover:bg-muted"
-                    )}
-                    onClick={() => toggleActivityType(type.value)}
-                  >
-                    <Checkbox
-                      checked={selectedActivityTypes.includes(type.value)}
-                      onCheckedChange={() => toggleActivityType(type.value)}
-                    />
-                    <span className="text-sm">{type.label}</span>
-                  </div>
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Customer Names - Multiple Input */}
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">
-                Nama Customer <span className="text-destructive">*</span>
-              </Label>
-              <div className="space-y-2">
-                {customerNames.map((name, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={name}
-                      onChange={(e) => updateCustomerName(index, e.target.value)}
-                      placeholder={`Customer ${index + 1}`}
-                    />
-                    {customerNames.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeCustomerName(index)}
-                        className="shrink-0 text-destructive hover:text-destructive"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addCustomerName}
-                  className="gap-1"
-                >
-                  <Plus className="h-4 w-4" />
-                  Tambah Customer
-                </Button>
-              </div>
-            </div>
+          {/* Customer Name - Mandatory */}
+          <div className="space-y-2">
+            <Label>Nama Customer <span className="text-destructive">*</span></Label>
+            <Input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Masukkan nama customer"
+              required
+            />
           </div>
 
           {/* Project */}
@@ -558,7 +465,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
           </div>
 
           {/* Photo Upload (only for visit) */}
-          {selectedActivityTypes.includes('visit') && (
+          {activityType === 'visit' && (
             <div className="space-y-3 rounded-lg border border-border p-4">
               <div className="flex items-center gap-2">
                 <Camera className="h-4 w-4 text-muted-foreground" />

@@ -50,7 +50,6 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { MissingActivitiesReport } from './MissingActivitiesReport';
-import { getFirstActivityType, getActivityTypes, displayCustomerNames, displayActivityTypes } from '@/utils/activityHelpers';
 
 interface ActivityReportProps {
   activities: DailyActivity[];
@@ -109,9 +108,8 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   const filteredActivities = useMemo(() => {
     return activities.filter(activity => {
       // Search filter
-      const customerNameStr = displayCustomerNames(activity.customerName);
       const matchesSearch = searchQuery === '' || 
-        customerNameStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        activity.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.notes.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.locationName?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -119,8 +117,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
       if (!matchesSearch) return false;
 
       // Activity type filter
-      const activityTypes = getActivityTypes(activity.activityType);
-      if (activityTypeFilter !== 'all' && !activityTypes.includes(activityTypeFilter as any)) {
+      if (activityTypeFilter !== 'all' && activity.activityType !== activityTypeFilter) {
         return false;
       }
 
@@ -177,8 +174,8 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
       'Waktu Input': format(new Date(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: id }),
       'Kategori': activity.category === 'sales' ? 'Sales' : 'Presales',
       'Nama Person': activity.personName,
-      'Tipe Aktivitas': displayActivityTypes(activity.activityType, activityTypeLabels),
-      'Nama Customer': displayCustomerNames(activity.customerName),
+      'Tipe Aktivitas': activityTypeLabels[activity.activityType] || activity.activityType,
+      'Nama Customer': activity.customerName,
       'Project': activity.project || '-',
       'Opportunity': activity.opportunity || '-',
       'Catatan': activity.notes || '-',
@@ -256,11 +253,11 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                     <TableCell>{activity.personName}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        {activityTypeIcons[getFirstActivityType(activity.activityType)]}
-                        <span className="text-sm">{displayActivityTypes(activity.activityType, activityTypeLabels)}</span>
+                        {activityTypeIcons[activity.activityType]}
+                        <span className="text-sm">{activityTypeLabels[activity.activityType]}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{displayCustomerNames(activity.customerName)}</TableCell>
+                    <TableCell>{activity.customerName}</TableCell>
                     <TableCell>
                       <span className="text-sm">{activity.project || '-'}</span>
                     </TableCell>
@@ -596,15 +593,15 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                 <div>
                   <p className="text-sm text-muted-foreground">Tipe Aktivitas</p>
                   <div className="flex items-center gap-1">
-                    {activityTypeIcons[getFirstActivityType(selectedActivity.activityType)]}
-                    <span>{displayActivityTypes(selectedActivity.activityType, activityTypeLabels)}</span>
+                    {activityTypeIcons[selectedActivity.activityType]}
+                    <span>{activityTypeLabels[selectedActivity.activityType]}</span>
                   </div>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-medium">{displayCustomerNames(selectedActivity.customerName)}</p>
+                <p className="font-medium">{selectedActivity.customerName}</p>
               </div>
 
               {(selectedActivity.project || selectedActivity.opportunity) && (
