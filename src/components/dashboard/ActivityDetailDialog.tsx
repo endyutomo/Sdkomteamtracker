@@ -1,4 +1,4 @@
-import { DailyActivity } from '@/types';
+import { DailyActivity, ActivityType } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Phone, Mail, MapPin, MessageSquare, Users, Calendar, Navigation, Briefcase, FileText } from 'lucide-react';
+import { getFirstActivityType, getActivityTypes, displayCustomerNames } from '@/utils/activityHelpers';
 
 interface ActivityDetailDialogProps {
   open: boolean;
@@ -34,7 +35,7 @@ export function ActivityDetailDialog({
     if (!filterType) return true;
     if (filterType === 'sales') return activity.category === 'sales' || !activity.category;
     if (filterType === 'presales') return activity.category === 'presales';
-    if (filterType === 'visit') return activity.activityType === 'visit';
+    if (filterType === 'visit') return getActivityTypes(activity.activityType).includes('visit');
     if (filterType === 'collaboration') return !!activity.collaboration;
     return true;
   });
@@ -53,7 +54,8 @@ export function ActivityDetailDialog({
           ) : (
             <div className="space-y-3">
               {filteredActivities.map((activity) => {
-                const config = activityTypeConfig[activity.activityType] || activityTypeConfig.other;
+                const firstType = getFirstActivityType(activity.activityType);
+                const config = activityTypeConfig[firstType] || activityTypeConfig.other;
                 const Icon = config.icon;
 
                 return (
@@ -67,7 +69,7 @@ export function ActivityDetailDialog({
                           <Icon className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium">{activity.customerName}</p>
+                          <p className="font-medium">{displayCustomerNames(activity.customerName)}</p>
                           <p className="text-sm text-muted-foreground">{activity.personName}</p>
                         </div>
                       </div>

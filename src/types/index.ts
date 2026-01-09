@@ -13,6 +13,7 @@ export interface CollaborationPerson {
   personId?: string;
   personName: string;
   division: 'sales' | 'presales' | 'manager' | 'other';
+  bookedAt?: Date; // Tanggal booking kolaborator
 }
 
 export interface Collaboration {
@@ -31,8 +32,8 @@ export interface DailyActivity {
   category: ActivityCategory;
   personId: string;
   personName: string;
-  activityType: ActivityType;
-  customerName: string;
+  activityType: ActivityType | ActivityType[]; // Support single or multiple activity types
+  customerName: string | string[]; // Support single or multiple customers
   project?: string;
   opportunity?: string;
   notes: string;

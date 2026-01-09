@@ -4,6 +4,7 @@ import { DailyActivity, ActivityType, ActivityCategory, Collaboration, Collabora
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { TablesInsert, Json } from '@/integrations/supabase/types';
+import { getFirstActivityType, getFirstCustomerName, displayActivityTypes } from '@/utils/activityHelpers';
 
 // Helper function to parse collaboration data from JSON
 const parseCollaboration = (data: Json | null): Collaboration | undefined => {
@@ -87,8 +88,8 @@ export function useActivities() {
         category: activity.category,
         person_id: activity.personId || null,
         person_name: activity.personName,
-        activity_type: activity.activityType,
-        customer_name: activity.customerName,
+        activity_type: getFirstActivityType(activity.activityType),
+        customer_name: getFirstCustomerName(activity.customerName),
         project: activity.project || null,
         opportunity: activity.opportunity || null,
         notes: activity.notes,
@@ -136,11 +137,18 @@ export function useActivities() {
 
       // Send notifications to collaborators
       if (activity.collaboration?.collaborators && activity.collaboration.collaborators.length > 0) {
+        const activityTypeLabelsLocal: Record<string, string> = {
+          visit: 'Kunjungan',
+          call: 'Telepon',
+          email: 'Email',
+          meeting: 'Meeting',
+          other: 'Lainnya'
+        };
         await sendCollaborationNotifications(
           activity.collaboration.collaborators,
           activity.personName,
-          activity.customerName,
-          activity.activityType,
+          getFirstCustomerName(activity.customerName),
+          getFirstActivityType(activity.activityType),
           activity.date,
           data.id
         );

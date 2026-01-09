@@ -31,6 +31,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { usePendingManagerRequests } from '@/hooks/usePendingManagerRequests';
 import { DailyActivity, Person } from '@/types';
+import { displayCustomerNames, getActivityTypes } from '@/utils/activityHelpers';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -113,11 +114,13 @@ const Index = () => {
 
   // Filter activities by search, activity type, and user division
   const filteredActivities = activities.filter(a => {
-    const matchesSearch = a.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const customerNameStr = displayCustomerNames(a.customerName);
+    const matchesSearch = customerNameStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.notes.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesType = activityTypeFilter === 'all' || a.activityType === activityTypeFilter;
+    const activityTypes = getActivityTypes(a.activityType);
+    const matchesType = activityTypeFilter === 'all' || activityTypes.includes(activityTypeFilter as any);
     
     // Manager can see all, sales can see their own + presales (read-only), presales see only their own
     if (isManager) return matchesSearch && matchesType;
