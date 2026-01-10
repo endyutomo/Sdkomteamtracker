@@ -3,11 +3,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Users } from 'lucide-react';
+import { CalendarDays, Users, CheckCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { DailyActivity } from '@/types';
+import { toast } from 'sonner';
 
 interface CollaboratorBookingCalendarProps {
   collaboratorId: string;
@@ -25,6 +26,7 @@ export function CollaboratorBookingCalendar({
   onDateSelect,
 }: CollaboratorBookingCalendarProps) {
   const [open, setOpen] = useState(false);
+  const [viewDate, setViewDate] = useState<Date>(selectedDate);
 
   // Get all booked dates for this collaborator
   const bookedDates = useMemo(() => {
@@ -59,7 +61,16 @@ export function CollaboratorBookingCalendar({
     return bookedDates.some(d => isSameDay(d, date));
   };
 
-  const selectedDateBookings = getBookingDetailsForDate(selectedDate);
+  const viewDateBookings = getBookingDetailsForDate(viewDate);
+  const isViewDateBooked = isDateBooked(viewDate);
+
+  const handleSelectAvailableDate = () => {
+    if (!isViewDateBooked) {
+      onDateSelect(viewDate);
+      toast.success(`Tanggal ${format(viewDate, 'PPP', { locale: id })} dipilih untuk aktivitas`);
+      setOpen(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -80,10 +91,10 @@ export function CollaboratorBookingCalendar({
         <div className="space-y-4">
           <Calendar
             mode="single"
-            selected={selectedDate}
+            selected={viewDate}
             onSelect={(date) => {
               if (date) {
-                onDateSelect(date);
+                setViewDate(date);
               }
             }}
             className="rounded-md border pointer-events-auto"
@@ -99,11 +110,11 @@ export function CollaboratorBookingCalendar({
             }}
             components={{
               DayContent: ({ date }) => {
-                const isBooked = isDateBooked(date);
+                const booked = isDateBooked(date);
                 return (
                   <div className="relative w-full h-full flex items-center justify-center">
                     <span>{date.getDate()}</span>
-                    {isBooked && (
+                    {booked && (
                       <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-destructive" />
                     )}
                   </div>
@@ -112,48 +123,70 @@ export function CollaboratorBookingCalendar({
             }}
           />
           
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-destructive/20 border border-destructive/50" />
               <span className="text-muted-foreground">Sudah dibooking</span>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-primary/20 border border-primary/50" />
+              <span className="text-muted-foreground">Tersedia</span>
+            </div>
           </div>
 
-          {selectedDateBookings.length > 0 && (
-            <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium">
-                Booking pada {format(selectedDate, 'PPP', { locale: id })}:
-              </p>
+          {/* Selected date info panel */}
+          <div className={cn(
+            "p-3 rounded-lg border",
+            isViewDateBooked ? "bg-destructive/10 border-destructive/30" : "bg-primary/10 border-primary/30"
+          )}>
+            <p className="text-sm font-medium mb-2">
+              {format(viewDate, 'EEEE, dd MMMM yyyy', { locale: id })}
+            </p>
+            
+            {isViewDateBooked ? (
               <div className="space-y-2">
-                {selectedDateBookings.map((activity) => (
-                  <div 
-                    key={activity.id} 
-                    className="text-sm p-2 bg-background rounded border"
-                  >
-                    <p className="font-medium">{activity.customerName}</p>
-                    {activity.project && (
-                      <p className="text-xs text-muted-foreground">
-                        Project: {activity.project}
-                      </p>
-                    )}
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {activity.activityType === 'visit' ? 'Kunjungan' :
-                       activity.activityType === 'call' ? 'Telepon' :
-                       activity.activityType === 'email' ? 'Email' :
-                       activity.activityType === 'meeting' ? 'Meeting' : 'Lainnya'}
-                    </Badge>
-                  </div>
-                ))}
+                <Badge variant="destructive" className="text-xs">
+                  Sudah dibooking
+                </Badge>
+                <div className="space-y-2 mt-2">
+                  {viewDateBookings.map((activity) => (
+                    <div 
+                      key={activity.id} 
+                      className="text-sm p-2 bg-background rounded border"
+                    >
+                      <p className="font-medium">{activity.customerName}</p>
+                      {activity.project && (
+                        <p className="text-xs text-muted-foreground">
+                          Project: {activity.project}
+                        </p>
+                      )}
+                      <Badge variant="secondary" className="mt-1 text-xs">
+                        {activity.activityType === 'visit' ? 'Kunjungan' :
+                         activity.activityType === 'call' ? 'Telepon' :
+                         activity.activityType === 'email' ? 'Email' :
+                         activity.activityType === 'meeting' ? 'Meeting' : 'Lainnya'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {selectedDateBookings.length === 0 && (
-            <div className="text-center p-4 text-muted-foreground text-sm">
-              <p>Tidak ada booking pada {format(selectedDate, 'PPP', { locale: id })}</p>
-              <p className="text-xs mt-1">Kolaborator tersedia pada tanggal ini</p>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-primary font-medium">Tersedia untuk booking</span>
+                </div>
+                <Button 
+                  onClick={handleSelectAvailableDate}
+                  className="w-full"
+                  size="sm"
+                >
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Gunakan Tanggal Ini
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
