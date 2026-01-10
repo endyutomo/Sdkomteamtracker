@@ -23,7 +23,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2, Lock } from 'lucide-react';
+import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2, Lock, CalendarDays } from 'lucide-react';
+import { CollaboratorBookingCalendar } from './CollaboratorBookingCalendar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { LocationPicker } from './LocationPicker';
@@ -556,6 +557,15 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                               collab.division === 'sales' ? 'Sales' : 
                               collab.division === 'presales' ? 'Presales' : 'Lainnya'})
                           </span>
+                          {collab.personId && (
+                            <CollaboratorBookingCalendar
+                              collaboratorId={collab.personId}
+                              collaboratorName={collab.personName}
+                              allActivities={allActivities}
+                              selectedDate={date}
+                              onDateSelect={(d) => setDate(d)}
+                            />
+                          )}
                           <button
                             type="button"
                             onClick={() => setCollaborators(prev => prev.filter((_, i) => i !== index))}
@@ -622,6 +632,17 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                         )}
                       </SelectContent>
                     </Select>
+                    
+                    {/* View All Bookings Calendar */}
+                    {selectedCollaboratorId && (
+                      <CollaboratorBookingCalendar
+                        collaboratorId={selectedCollaboratorId}
+                        collaboratorName={allCollaborationOptions.find(p => p.id === selectedCollaboratorId)?.name || ''}
+                        allActivities={allActivities}
+                        selectedDate={date}
+                        onDateSelect={(d) => setDate(d)}
+                      />
+                    )}
                     <Button
                       type="button"
                       variant="outline"
