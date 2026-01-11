@@ -17,11 +17,11 @@ interface HeaderProps {
   onOpenSettings?: () => void;
 }
 
-export function Header({ 
-  activeTab, 
-  onTabChange, 
-  onAddActivity, 
-  isManager, 
+export function Header({
+  activeTab,
+  onTabChange,
+  onAddActivity,
+  isManager,
   userDivision,
   companyLogo,
   companyName = 'SalesTrack',
@@ -29,16 +29,16 @@ export function Header({
   onOpenSettings
 }: HeaderProps) {
   const { signOut, user } = useAuth();
-  
+
   const baseTabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'activities', label: 'Aktivitas', icon: Activity },
     { id: 'report', label: 'Report', icon: FileSpreadsheet },
     { id: 'persons', label: 'Tim', icon: Users },
   ];
-  
-  // Add sales tab for sales division users
-  const tabs = userDivision === 'sales' 
+
+  // Add sales tab for sales division users and managers
+  const tabs = (userDivision === 'sales' || isManager)
     ? [...baseTabs.slice(0, 2), { id: 'sales', label: 'Penjualan', icon: DollarSign }, ...baseTabs.slice(2)]
     : baseTabs;
 
@@ -49,8 +49,8 @@ export function Header({
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
               {companyLogo ? (
-                <img 
-                  src={companyLogo} 
+                <img
+                  src={companyLogo}
                   alt={companyName}
                   className="h-10 w-10 rounded-lg object-contain bg-background border border-border"
                 />
@@ -75,17 +75,16 @@ export function Header({
                 </Button>
               )}
             </div>
-            
+
             <nav className="hidden md:flex items-center gap-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
+                    }`}
                 >
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
@@ -106,15 +105,15 @@ export function Header({
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Tambah Aktivitas</span>
             </Button>
-            
+
             <NotificationBell />
-            
+
             {onOpenSettings && (
               <Button variant="ghost" size="icon" onClick={onOpenSettings} title="Pengaturan">
                 <Settings className="h-4 w-4" />
               </Button>
             )}
-            
+
             {user && (
               <Button variant="ghost" size="icon" onClick={signOut} title="Keluar">
                 <LogOut className="h-4 w-4" />
@@ -129,11 +128,10 @@ export function Header({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                activeTab === tab.id
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${activeTab === tab.id
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
+                }`}
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}

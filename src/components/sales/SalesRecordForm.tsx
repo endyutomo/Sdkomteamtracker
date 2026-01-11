@@ -59,7 +59,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!customerName.trim() || !productName.trim() || quantity <= 0 || unitPrice <= 0) {
       return;
     }

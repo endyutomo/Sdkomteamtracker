@@ -117,9 +117,9 @@ const Index = () => {
     const matchesSearch = a.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.notes.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesType = activityTypeFilter === 'all' || a.activityType === activityTypeFilter;
-    
+
     // Manager can see all, sales can see their own + presales (read-only), presales see only their own
     if (isManager) return matchesSearch && matchesType;
     if (profile?.division === 'sales') return matchesSearch && matchesType; // Sales can see all (presales via RLS)
@@ -164,8 +164,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        activeTab={activeTab} 
+      <Header
+        activeTab={activeTab}
         onTabChange={setActiveTab}
         onAddActivity={() => {
           setEditActivity(null);
@@ -204,9 +204,9 @@ const Index = () => {
         ) : (
           <>
             {activeTab === 'dashboard' && (
-              <Dashboard 
-                activities={filteredActivities} 
-                persons={persons} 
+              <Dashboard
+                activities={filteredActivities}
+                persons={persons}
                 allProfiles={allProfiles}
                 companySettings={companySettings}
                 onOpenCompanySettings={() => setShowCompanySettings(true)}
@@ -288,8 +288,8 @@ const Index = () => {
                     </Button>
                   </div>
                 </div>
-                
-                <ActivityList 
+
+                <ActivityList
                   activities={filteredActivities}
                   onDelete={handleDeleteActivity}
                   onEdit={handleEditActivity}
@@ -297,7 +297,7 @@ const Index = () => {
               </div>
             )}
 
-            {activeTab === 'sales' && profile?.division === 'sales' && (
+            {activeTab === 'sales' && (profile?.division === 'sales' || isManager) && (
               <div className="space-y-6 animate-fade-in">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">Penjualan & Target</h2>
@@ -308,9 +308,9 @@ const Index = () => {
             )}
 
             {activeTab === 'report' && (
-              <ActivityReport 
-                activities={activities} 
-                allProfiles={allProfiles} 
+              <ActivityReport
+                activities={activities}
+                allProfiles={allProfiles}
               />
             )}
 
@@ -331,9 +331,9 @@ const Index = () => {
                     />
                   </div>
                 </div>
-                
-                <TeamMemberList 
-                  profiles={allProfiles.filter(p => 
+
+                <TeamMemberList
+                  profiles={allProfiles.filter(p =>
                     p.name.toLowerCase().includes(searchQuery.toLowerCase())
                   )}
                   isManager={isManager}

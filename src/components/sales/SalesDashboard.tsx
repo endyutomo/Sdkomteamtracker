@@ -312,8 +312,8 @@ export function SalesDashboard() {
                               {target.periodType === 'monthly'
                                 ? 'Bulanan'
                                 : target.periodType === 'quarterly'
-                                ? 'Kuartal'
-                                : 'Tahunan'}
+                                  ? 'Kuartal'
+                                  : 'Tahunan'}
                             </Badge>
                           </TableCell>
                           <TableCell>{target.periodYear}</TableCell>
@@ -321,8 +321,8 @@ export function SalesDashboard() {
                             {target.periodType === 'monthly' && target.periodMonth
                               ? months[target.periodMonth - 1]
                               : target.periodType === 'quarterly' && target.periodQuarter
-                              ? `Q${target.periodQuarter}`
-                              : '-'}
+                                ? `Q${target.periodQuarter}`
+                                : '-'}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatCurrency(target.targetAmount)}

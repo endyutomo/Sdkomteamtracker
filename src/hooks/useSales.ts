@@ -17,7 +17,7 @@ export function useSales() {
 
   const fetchTargets = useCallback(async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('sales_targets')
       .select('*')
@@ -148,7 +148,7 @@ export function useSales() {
 
     if (error) {
       console.error('Error adding record:', error);
-      toast.error('Gagal menyimpan penjualan');
+      toast.error(`Gagal menyimpan penjualan: ${error.message}`);
       return;
     }
 
@@ -187,7 +187,7 @@ export function useSales() {
 
     if (error) {
       console.error('Error updating record:', error);
-      toast.error('Gagal mengupdate penjualan');
+      toast.error(`Gagal mengupdate penjualan: ${error.message}`);
       return;
     }
 
