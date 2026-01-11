@@ -57,11 +57,11 @@ const activityColors = {
 export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const { profile, isManager, isSuperadmin } = useProfile();
-  
+
   const sortedActivities = [...activities].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-  
+
   // Check if activity is within 24 hours of creation
   const isWithin24Hours = (activity: DailyActivity) => {
     const hoursElapsed = differenceInHours(new Date(), new Date(activity.createdAt));
@@ -73,23 +73,23 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
     const hoursElapsed = differenceInHours(new Date(), new Date(activity.createdAt));
     return Math.max(0, 24 - hoursElapsed);
   };
-  
+
   // Check if user can edit/delete an activity
   const canModify = (activity: DailyActivity) => {
     // Superadmin can modify all activities
     if (isSuperadmin) return true;
-    
+
     // All users can edit their own activities within 24 hours
     if (activity.personId === profile?.id && isWithin24Hours(activity)) {
       return true;
     }
-    
+
     // Regular manager can only view, not edit others
     if (isManager && !isSuperadmin) {
       // Manager can edit their own activities only
       return activity.personId === profile?.id;
     }
-    
+
     // Sales can only modify their own sales activities, not presales
     if (profile?.division === 'sales' && activity.category === 'presales') return false;
     // Presales can only modify their own presales activities, not sales
@@ -141,7 +141,7 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                   <p className="mt-1 text-xs text-muted-foreground">
                     {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: id })}
                   </p>
-                  
+
                   {/* Photos for visit activity */}
                   {activity.activityType === 'visit' && activity.photos && activity.photos.length > 0 && (
                     <div className="mt-3">
@@ -168,11 +168,18 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                       {/* Display multi-collaborators if available */}
                       {activity.collaboration.collaborators && activity.collaboration.collaborators.length > 0 ? (
                         activity.collaboration.collaborators.map((collab, idx) => (
-                          <Badge key={idx} className="bg-info/10 text-info border-info/20 hover:bg-info/20">
-                            <Users className="mr-1.5 h-3 w-3" />
-                            {collab.personName} ({collab.division === 'manager' ? 'Manager' : 
-                              collab.division === 'sales' ? 'Sales' : 
-                              collab.division === 'presales' ? 'Presales' : 'Lainnya'})
+                          <Badge key={idx} className="bg-info/10 text-info border-info/20 hover:bg-info/20 h-auto py-1">
+                            <div className="flex flex-col items-start gap-0.5">
+                              <div className="flex items-center">
+                                <Users className="mr-1.5 h-3 w-3" />
+                                <span>{collab.personName}</span>
+                              </div>
+                              {collab.bookingDate && (
+                                <span className="text-[10px] opacity-70 ml-4.5 bg-info/20 px-1 rounded">
+                                  Booking: {format(new Date(collab.bookingDate), 'dd MMM yyyy', { locale: id })}
+                                </span>
+                              )}
+                            </div>
                           </Badge>
                         ))
                       ) : (
@@ -184,7 +191,7 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                       )}
                     </div>
                   )}
-                  
+
                   {activity.notes && (
                     <p className="mt-3 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
                       {activity.notes}
@@ -192,7 +199,7 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                   )}
                 </div>
               </div>
-              
+
               {canModify(activity) ? (
                 <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   {/* Show remaining time indicator for 24-hour edit window */}

@@ -69,6 +69,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const [hasCollaboration, setHasCollaboration] = useState(false);
   const [collaborators, setCollaborators] = useState<CollaborationPerson[]>([]);
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState('');
+  const [collaboratorBookingDate, setCollaboratorBookingDate] = useState<Date>(new Date());
   const [photos, setPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<LocationData | undefined>();
   const [hasReminder, setHasReminder] = useState(false);
@@ -97,40 +98,40 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const superadminProfiles = allProfiles.filter(p => superadminIds.includes(p.user_id));
 
   // Get ALL profiles for collaboration selection - everyone can be selected
-  const allCollaborationOptions = allProfiles.map(p => ({ 
-    id: p.id, 
-    name: p.name, 
-    division: p.division as 'sales' | 'presales' | 'manager', 
-    user_id: p.user_id 
+  const allCollaborationOptions = allProfiles.map(p => ({
+    id: p.id,
+    name: p.name,
+    division: p.division as 'sales' | 'presales' | 'manager',
+    user_id: p.user_id
   }));
 
   // Get profiles by division for selection - include managers and superadmins
   const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager' || superadminIds.includes(p.user_id));
   const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager' || superadminIds.includes(p.user_id));
-  
+
   // Fall back to persons if no profiles available
   const salesPersons = persons.filter(p => p.role === 'sales');
   const presalesPersons = persons.filter(p => p.role === 'presales');
-  
+
   // Use profiles first, then fall back to persons
-  const availableSalesOptions = salesProfiles.length > 0 
+  const availableSalesOptions = salesProfiles.length > 0
     ? salesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division, user_id: p.user_id }))
     : salesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
-    
+
   const availablePresalesOptions = presalesProfiles.length > 0
     ? presalesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division, user_id: p.user_id }))
     : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
-    
+
   const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
 
   // Get booked collaborators for the selected date (excluding current activity if editing)
   const getBookedCollaboratorsForDate = (selectedDate: Date): Set<string> => {
     const booked = new Set<string>();
-    
+
     allActivities.forEach(activity => {
       // Skip current activity if editing
       if (editActivity && activity.id === editActivity.id) return;
-      
+
       // Check if activity is on the same date
       if (isSameDay(new Date(activity.date), selectedDate)) {
         // Add all collaborators from this activity
@@ -146,12 +147,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
         }
       }
     });
-    
+
     return booked;
   };
 
   const bookedCollaborators = getBookedCollaboratorsForDate(date);
-  
+
   // Filter collaboration options to exclude already selected collaborators, current person, and booked collaborators
   const availableCollaboratorOptions = allCollaborationOptions.filter(
     p => p.id !== personId && !collaborators.some(c => c.personId === p.id)
@@ -238,6 +239,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     setHasCollaboration(false);
     setCollaborators([]);
     setSelectedCollaboratorId('');
+    setCollaboratorBookingDate(new Date());
     setPhotos([]);
     setLocation(undefined);
     setHasReminder(false);
@@ -274,12 +276,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!personId) {
       toast.error(`Pilih ${category === 'sales' ? 'sales' : 'presales'} person`);
       return;
     }
-    
+
     if (!customerName.trim()) {
       toast.error('Nama customer wajib diisi');
       return;
@@ -292,7 +294,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     }
 
     const selectedOption = availableOptions.find(p => p.id === personId);
-    
+
     let collaboration: Collaboration | undefined;
     if (hasCollaboration && collaborators.length > 0) {
       // Use the first collaborator for legacy fields, store all in collaborators array
@@ -472,7 +474,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 <Camera className="h-4 w-4 text-muted-foreground" />
                 <Label className="font-medium">Foto Kunjungan</Label>
               </div>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -481,7 +483,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 onChange={handlePhotoUpload}
                 className="hidden"
               />
-              
+
               <div className="flex flex-wrap gap-3">
                 {photos.map((photo, index) => (
                   <div key={index} className="relative group">
@@ -499,7 +501,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                     </button>
                   </div>
                 ))}
-                
+
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -509,7 +511,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                   <span className="text-xs">Tambah</span>
                 </button>
               </div>
-              
+
               <p className="text-xs text-muted-foreground">
                 Maksimal 5MB per foto. Format: JPG, PNG, WebP
               </p>
@@ -546,25 +548,16 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                     <Label className="text-sm text-muted-foreground">Kolaborator terpilih:</Label>
                     <div className="flex flex-wrap gap-2">
                       {collaborators.map((collab, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="secondary" 
+                        <Badge
+                          key={index}
+                          variant="secondary"
                           className="flex items-center gap-1 pr-1"
                         >
                           <span>{collab.personName}</span>
-                          <span className="text-xs opacity-70">
-                            ({collab.division === 'manager' ? 'Manager' : 
-                              collab.division === 'sales' ? 'Sales' : 
-                              collab.division === 'presales' ? 'Presales' : 'Lainnya'})
-                          </span>
-                          {collab.personId && (
-                            <CollaboratorBookingCalendar
-                              collaboratorId={collab.personId}
-                              collaboratorName={collab.personName}
-                              allActivities={allActivities}
-                              selectedDate={date}
-                              onDateSelect={(d) => setDate(d)}
-                            />
+                          {collab.bookingDate && (
+                            <span className="text-[10px] bg-primary/10 text-primary px-1 rounded ml-1">
+                              {format(new Date(collab.bookingDate), 'dd MMM')}
+                            </span>
                           )}
                           <button
                             type="button"
@@ -580,14 +573,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 )}
 
                 {/* Add new collaborator */}
-                <div className="space-y-2">
-                  <Label>Tambah Kolaborator</Label>
-                  <div className="flex gap-2">
-                    <Select 
-                      value={selectedCollaboratorId} 
+                <div className="space-y-3">
+                  <Label>Tambah Kolaborator & Waktu Booking</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Select
+                      value={selectedCollaboratorId}
                       onValueChange={setSelectedCollaboratorId}
                     >
-                      <SelectTrigger className="flex-1">
+                      <SelectTrigger>
                         <SelectValue placeholder="Pilih anggota tim" />
                       </SelectTrigger>
                       <SelectContent>
@@ -597,17 +590,17 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                           </div>
                         ) : (
                           availableCollaboratorOptions.map((option) => {
-                            const isBooked = bookedCollaborators.has(option.id);
+                            const isBooked = getBookedCollaboratorsForDate(collaboratorBookingDate).has(option.id);
                             return (
-                              <SelectItem 
-                                key={option.id} 
+                              <SelectItem
+                                key={option.id}
                                 value={option.id}
                                 disabled={isBooked}
                               >
                                 <div className="flex items-center gap-2">
                                   {option.name}
                                   <span className="text-xs text-muted-foreground">
-                                    ({option.division === 'manager' ? 'Manager' : 
+                                    ({option.division === 'manager' ? 'Manager' :
                                       option.division === 'sales' ? 'Sales' : 'Presales'})
                                   </span>
                                   {option.user_id && isUserSuperadmin(option.user_id) && (
@@ -632,34 +625,59 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                         )}
                       </SelectContent>
                     </Select>
-                    
-                    {/* View All Bookings Calendar */}
+
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !collaboratorBookingDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarDays className="mr-2 h-4 w-4" />
+                          {collaboratorBookingDate ? format(collaboratorBookingDate, "dd MMM yyyy", { locale: id }) : "Tanggal Booking"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={collaboratorBookingDate}
+                          onSelect={(d) => d && setCollaboratorBookingDate(d)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="flex gap-2">
                     {selectedCollaboratorId && (
                       <CollaboratorBookingCalendar
                         collaboratorId={selectedCollaboratorId}
                         collaboratorName={allCollaborationOptions.find(p => p.id === selectedCollaboratorId)?.name || ''}
                         allActivities={allActivities}
-                        selectedDate={date}
-                        onDateSelect={(d) => setDate(d)}
+                        selectedDate={collaboratorBookingDate}
+                        onDateSelect={(d) => setCollaboratorBookingDate(d)}
                       />
                     )}
                     <Button
                       type="button"
-                      variant="outline"
-                      size="icon"
+                      variant="default"
+                      className="flex-1"
                       onClick={() => {
                         if (selectedCollaboratorId) {
                           const option = allCollaborationOptions.find(p => p.id === selectedCollaboratorId);
                           if (option) {
                             // Check if already booked
-                            if (bookedCollaborators.has(option.id)) {
-                              toast.error(`${option.name} sudah dibooking untuk tanggal ini`);
+                            if (getBookedCollaboratorsForDate(collaboratorBookingDate).has(option.id)) {
+                              toast.error(`${option.name} sudah dibooking untuk tanggal ${format(collaboratorBookingDate, 'dd MMM')}`);
                               return;
                             }
                             setCollaborators(prev => [...prev, {
                               personId: option.id,
                               personName: option.name,
-                              division: option.division as 'sales' | 'presales' | 'manager' | 'other'
+                              division: option.division as 'sales' | 'presales' | 'manager' | 'other',
+                              bookingDate: collaboratorBookingDate.toISOString()
                             }]);
                             setSelectedCollaboratorId('');
                           }
@@ -667,13 +685,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                       }}
                       disabled={!selectedCollaboratorId}
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Kolaborator
                     </Button>
                   </div>
-                  {bookedCollaborators.size > 0 && (
+                  {getBookedCollaboratorsForDate(collaboratorBookingDate).size > 0 && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Lock className="h-3 w-3" />
-                      Anggota dengan tanda kunci sudah dibooking untuk tanggal ini
+                      Kunci: Terbooking pada {format(collaboratorBookingDate, 'dd MMM')}
                     </p>
                   )}
                 </div>

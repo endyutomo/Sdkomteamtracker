@@ -13,6 +13,7 @@ export interface CollaborationPerson {
   personId?: string;
   personName: string;
   division: 'sales' | 'presales' | 'manager' | 'other';
+  bookingDate?: string;
 }
 
 export interface Collaboration {

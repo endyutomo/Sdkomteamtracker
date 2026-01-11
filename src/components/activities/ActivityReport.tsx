@@ -22,13 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
-  Download, 
-  FileSpreadsheet, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Users, 
+import {
+  Download,
+  FileSpreadsheet,
+  MapPin,
+  Phone,
+  Mail,
+  Users,
   Calendar,
   Briefcase,
   Eye,
@@ -108,7 +108,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   const filteredActivities = useMemo(() => {
     return activities.filter(activity => {
       // Search filter
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         activity.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.notes.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -123,19 +123,19 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
 
       // Date filter
       const activityDate = new Date(activity.date);
-      
+
       if (filterType === 'date' && selectedDate) {
         const activityDateStr = format(activityDate, 'yyyy-MM-dd');
         const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
         return activityDateStr === selectedDateStr;
       }
-      
+
       if (filterType === 'month' && selectedMonth !== '' && selectedYear) {
         const monthStart = startOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
         const monthEnd = endOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth)));
         return isWithinInterval(activityDate, { start: monthStart, end: monthEnd });
       }
-      
+
       if (filterType === 'year' && selectedYear) {
         const yearStart = startOfYear(new Date(parseInt(selectedYear), 0));
         const yearEnd = endOfYear(new Date(parseInt(selectedYear), 0));
@@ -162,7 +162,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   // Export to Excel
   const exportToExcel = (division: 'all' | 'sales' | 'presales') => {
     let dataToExport = filteredActivities;
-    
+
     if (division === 'sales') {
       dataToExport = salesActivities;
     } else if (division === 'presales') {
@@ -182,8 +182,9 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
       'Latitude': activity.latitude || '-',
       'Longitude': activity.longitude || '-',
       'Nama Lokasi': activity.locationName || '-',
-      'Kolaborasi Dengan': activity.collaboration?.personName || '-',
-      'Divisi Kolaborasi': activity.collaboration?.division || '-',
+      'Kolaborasi': activity.collaboration?.collaborators
+        ? activity.collaboration.collaborators.map(c => `${c.personName} (${c.bookingDate ? format(new Date(c.bookingDate), 'dd/MM/yyyy') : '-'})`).join(', ')
+        : activity.collaboration?.personName || '-',
       'Jumlah Foto': activity.photos?.length || 0,
     }));
 
@@ -194,7 +195,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
     // Auto-size columns
     const maxWidth = 50;
     const colWidths = Object.keys(exportData[0] || {}).map(key => ({
-      wch: Math.min(maxWidth, Math.max(key.length, ...exportData.map(row => 
+      wch: Math.min(maxWidth, Math.max(key.length, ...exportData.map(row =>
         String(row[key as keyof typeof row] || '').length
       )))
     }));
@@ -556,9 +557,9 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
       </Tabs>
 
       {/* Missing Activities Report */}
-      <MissingActivitiesReport 
-        activities={activities} 
-        allProfiles={allProfiles} 
+      <MissingActivitiesReport
+        activities={activities}
+        allProfiles={allProfiles}
       />
 
       {/* Activity Detail Dialog */}
@@ -567,7 +568,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
           <DialogHeader>
             <DialogTitle>Detail Aktivitas</DialogTitle>
           </DialogHeader>
-          
+
           {selectedActivity && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -658,17 +659,35 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
 
               {/* Collaboration */}
               {selectedActivity.collaboration && (
-                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 space-y-1">
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 space-y-2">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-blue-500" />
                     <span className="font-medium text-sm">Kolaborasi</span>
                   </div>
-                  <p className="text-sm">
-                    {selectedActivity.collaboration.personName} 
-                    <span className="text-muted-foreground ml-1">
-                      ({selectedActivity.collaboration.division === 'presales' ? 'Presales' : 'Divisi Lain'})
-                    </span>
-                  </p>
+                  <div className="space-y-2">
+                    {selectedActivity.collaboration.collaborators ? (
+                      selectedActivity.collaboration.collaborators.map((c, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span>{c.personName}</span>
+                          <div className="flex items-center gap-2 text-xs">
+                            <Badge variant="outline" className="text-[10px] h-5">{c.division}</Badge>
+                            {c.bookingDate && (
+                              <Badge variant="secondary" className="text-[10px] h-5 bg-blue-100 dark:bg-blue-900">
+                                Booking: {format(new Date(c.bookingDate), 'dd MMM yyyy', { locale: id })}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm">
+                        {selectedActivity.collaboration.personName}
+                        <span className="text-muted-foreground ml-1">
+                          ({selectedActivity.collaboration.division === 'presales' ? 'Presales' : 'Divisi Lain'})
+                        </span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
