@@ -1,4 +1,4 @@
-import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,12 +30,17 @@ export function Header({
 }: HeaderProps) {
   const { signOut, user } = useAuth();
   
-  const tabs = [
+  const baseTabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'activities', label: 'Aktivitas', icon: Activity },
     { id: 'report', label: 'Report', icon: FileSpreadsheet },
     { id: 'persons', label: 'Tim', icon: Users },
   ];
+  
+  // Add sales tab for sales division users
+  const tabs = userDivision === 'sales' 
+    ? [...baseTabs.slice(0, 2), { id: 'sales', label: 'Penjualan', icon: DollarSign }, ...baseTabs.slice(2)]
+    : baseTabs;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
