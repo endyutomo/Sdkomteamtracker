@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SalesTarget, SalesRecord, PeriodType } from '@/types/sales';
 import { toast } from 'sonner';
@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 export function useSales() {
   const [targets, setTargets] = useState<SalesTarget[]>([]);
   const [records, setRecords] = useState<SalesRecord[]>([]);
+  const [profileMap, setProfileMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string } | null>(null);
 
@@ -13,6 +14,23 @@ export function useSales() {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
     });
+  }, []);
+
+  const fetchProfiles = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('user_id, name');
+
+    if (error) {
+      console.error('Error fetching profiles:', error);
+      return;
+    }
+
+    const map = (data || []).reduce((acc: Record<string, string>, p) => {
+      acc[p.user_id] = p.name;
+      return acc;
+    }, {});
+    setProfileMap(map);
   }, []);
 
   const fetchTargets = useCallback(async () => {
@@ -46,18 +64,20 @@ export function useSales() {
   const fetchRecords = useCallback(async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
+    // Fetch sales records
+    const { data: salesData, error: salesError } = await supabase
       .from('sales_records')
       .select('*')
       .order('closing_date', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching records:', error);
+    if (salesError) {
+      console.error('Error fetching records:', salesError);
+      toast.error(`Gagal mengambil data penjualan: ${salesError.message}`);
       return;
     }
 
     setRecords(
-      data.map((r) => ({
+      (salesData || []).map((r) => ({
         id: r.id,
         userId: r.user_id,
         customerName: r.customer_name,
@@ -73,13 +93,50 @@ export function useSales() {
     );
   }, [user]);
 
+  // Enriched targets with achievement and userName
+  const enrichedTargets = useMemo(() => {
+    return targets.map(target => {
+      const achievements = records.filter(record => {
+        if (record.userId !== target.userId) return false;
+
+        const date = record.closingDate;
+        const recordYear = date.getFullYear();
+        const recordMonth = date.getMonth() + 1;
+        const recordQuarter = Math.ceil(recordMonth / 3);
+
+        if (recordYear !== target.periodYear) return false;
+
+        if (target.periodType === 'monthly' && recordMonth !== target.periodMonth) return false;
+        if (target.periodType === 'quarterly' && recordQuarter !== target.periodQuarter) return false;
+
+        return true;
+      });
+
+      const achievedAmount = achievements.reduce((sum, r) => sum + r.totalAmount, 0);
+
+      return {
+        ...target,
+        userName: profileMap[target.userId] || 'Unknown',
+        achievedAmount
+      };
+    });
+  }, [targets, records, profileMap]);
+
+  // Enriched records with userName
+  const enrichedRecords = useMemo(() => {
+    return records.map(record => ({
+      ...record,
+      userName: profileMap[record.userId] || 'Unknown'
+    }));
+  }, [records, profileMap]);
+
   useEffect(() => {
     if (user) {
-      Promise.all([fetchTargets(), fetchRecords()]).finally(() =>
+      Promise.all([fetchProfiles(), fetchTargets(), fetchRecords()]).finally(() =>
         setLoading(false)
       );
     }
-  }, [user, fetchTargets, fetchRecords]);
+  }, [user, fetchProfiles, fetchTargets, fetchRecords]);
 
   const addTarget = async (
     periodType: PeriodType,
@@ -214,7 +271,7 @@ export function useSales() {
     month?: number,
     quarter?: number
   ) => {
-    return targets.find(
+    return enrichedTargets.find(
       (t) =>
         t.periodType === periodType &&
         t.periodYear === year &&
@@ -229,7 +286,7 @@ export function useSales() {
     month?: number,
     quarter?: number
   ) => {
-    return records.filter((r) => {
+    return enrichedRecords.filter((r) => {
       const date = r.closingDate;
       const recordYear = date.getFullYear();
       const recordMonth = date.getMonth() + 1;
@@ -248,8 +305,8 @@ export function useSales() {
   };
 
   return {
-    targets,
-    records,
+    targets: enrichedTargets,
+    records: enrichedRecords,
     loading,
     addTarget,
     addRecord,
@@ -257,6 +314,6 @@ export function useSales() {
     deleteRecord,
     getTargetForPeriod,
     getSalesForPeriod,
-    refetch: () => Promise.all([fetchTargets(), fetchRecords()]),
+    refetch: () => Promise.all([fetchProfiles(), fetchTargets(), fetchRecords()]),
   };
 }

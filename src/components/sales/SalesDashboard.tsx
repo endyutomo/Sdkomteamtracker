@@ -233,6 +233,7 @@ export function SalesDashboard() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Tanggal</TableHead>
+                        <TableHead>Sales</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Produk</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
@@ -246,6 +247,7 @@ export function SalesDashboard() {
                           <TableCell>
                             {format(record.closingDate, 'dd MMM yyyy', { locale: id })}
                           </TableCell>
+                          <TableCell className="font-medium">{record.userName}</TableCell>
                           <TableCell className="font-medium">{record.customerName}</TableCell>
                           <TableCell>{record.productName}</TableCell>
                           <TableCell className="text-right">{record.quantity}</TableCell>
@@ -298,15 +300,18 @@ export function SalesDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Sales</TableHead>
                         <TableHead>Periode</TableHead>
                         <TableHead>Tahun</TableHead>
                         <TableHead>Detail</TableHead>
                         <TableHead className="text-right">Target</TableHead>
+                        <TableHead className="text-right">Realisasi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {targets.map((target) => (
                         <TableRow key={target.id}>
+                          <TableCell className="font-medium">{target.userName}</TableCell>
                           <TableCell>
                             <Badge variant="outline">
                               {target.periodType === 'monthly'
@@ -326,6 +331,9 @@ export function SalesDashboard() {
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatCurrency(target.targetAmount)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-primary">
+                            {formatCurrency(target.achievedAmount || 0)}
                           </TableCell>
                         </TableRow>
                       ))}

@@ -8,6 +8,8 @@ export interface SalesTarget {
   periodMonth?: number | null;
   periodQuarter?: number | null;
   targetAmount: number;
+  userName?: string;
+  achievedAmount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +22,7 @@ export interface SalesRecord {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  userName?: string;
   closingDate: Date;
   notes?: string | null;
   createdAt: Date;
