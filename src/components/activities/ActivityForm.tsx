@@ -371,12 +371,18 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  disabled={!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))}
                   className={cn(
                     'w-full justify-start text-left font-normal',
+                    (!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))) && 'bg-muted cursor-not-allowed',
                     !date && 'text-muted-foreground'
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {(!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))) ? (
+                    <Lock className="mr-2 h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                  )}
                   {date ? format(date, 'PPP', { locale: id }) : 'Pilih tanggal'}
                 </Button>
               </PopoverTrigger>
@@ -389,6 +395,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 />
               </PopoverContent>
             </Popover>
+            {(!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))) && (
+              <p className="text-[10px] text-muted-foreground">Tanggal terkunci. Hanya Manager yang dapat mengubah tanggal.</p>
+            )}
           </div>
 
           {/* Person */}
