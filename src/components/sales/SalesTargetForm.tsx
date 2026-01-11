@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PeriodType } from '@/types/sales';
+import { PeriodType, SalesTarget } from '@/types/sales';
 
 interface SalesTargetFormProps {
   open: boolean;
@@ -14,15 +14,11 @@ interface SalesTargetFormProps {
     periodYear: number,
     targetAmount: number,
     periodMonth?: number,
-    periodQuarter?: number
+    periodQuarter?: number,
+    userId?: string,
+    id?: string
   ) => Promise<void>;
-  existingTarget?: {
-    periodType: PeriodType;
-    periodYear: number;
-    periodMonth?: number | null;
-    periodQuarter?: number | null;
-    targetAmount: number;
-  };
+  existingTarget?: SalesTarget;
 }
 
 const months = [
@@ -63,8 +59,14 @@ export function SalesTargetForm({ open, onClose, onSubmit, existingTarget }: Sal
       if (existingTarget.periodMonth) setPeriodMonth(existingTarget.periodMonth);
       if (existingTarget.periodQuarter) setPeriodQuarter(existingTarget.periodQuarter);
       setTargetAmount(existingTarget.targetAmount);
+    } else {
+      setPeriodType('monthly');
+      setPeriodYear(currentYear);
+      setPeriodMonth(new Date().getMonth() + 1);
+      setPeriodQuarter(Math.ceil((new Date().getMonth() + 1) / 3));
+      setTargetAmount(0);
     }
-  }, [existingTarget, open]);
+  }, [existingTarget, open, currentYear]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +80,9 @@ export function SalesTargetForm({ open, onClose, onSubmit, existingTarget }: Sal
         periodYear,
         targetAmount,
         periodType === 'monthly' ? periodMonth : undefined,
-        periodType === 'quarterly' ? periodQuarter : undefined
+        periodType === 'quarterly' ? periodQuarter : undefined,
+        existingTarget?.userId,
+        existingTarget?.id
       );
       onClose();
     } finally {
@@ -100,7 +104,7 @@ export function SalesTargetForm({ open, onClose, onSubmit, existingTarget }: Sal
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Set Target Penjualan</DialogTitle>
+          <DialogTitle>{existingTarget ? 'Edit Target Penjualan' : 'Set Target Penjualan'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

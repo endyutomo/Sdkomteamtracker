@@ -39,12 +39,15 @@ export function SalesDashboard() {
     deleteRecord,
     getTargetForPeriod,
     getSalesForPeriod,
+    isManager,
   } = useSales();
 
   const [showRecordForm, setShowRecordForm] = useState(false);
   const [showTargetForm, setShowTargetForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<SalesRecord | undefined>();
+  const [editingTarget, setEditingTarget] = useState<any | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTargetConfirm, setDeleteTargetConfirm] = useState<string | null>(null);
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -113,14 +116,22 @@ export function SalesDashboard() {
     setDeleteConfirm(null);
   };
 
-  const handleAddTarget = async (
+  const handleSaveTarget = async (
     periodType: PeriodType,
     periodYear: number,
     targetAmount: number,
     periodMonth?: number,
-    periodQuarter?: number
+    periodQuarter?: number,
+    userId?: string,
+    id?: string
   ) => {
-    await addTarget(periodType, periodYear, targetAmount, periodMonth, periodQuarter);
+    await addTarget(periodType, periodYear, targetAmount, periodMonth, periodQuarter, userId, id);
+    setEditingTarget(undefined);
+  };
+
+  const handleDeleteTarget = async (id: string) => {
+    await deleteTarget(id);
+    setDeleteTargetConfirm(null);
   };
 
   if (loading) {
@@ -137,7 +148,9 @@ export function SalesDashboard() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Target Bulanan</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isManager ? 'Target Tim Bulanan' : 'Target Bulanan'}
+            </CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -159,7 +172,9 @@ export function SalesDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Target Kuartal</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isManager ? 'Target Tim Kuartal' : 'Target Kuartal'}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -179,7 +194,9 @@ export function SalesDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Target Tahunan</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isManager ? 'Target Tim Tahunan' : 'Target Tahunan'}
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -306,6 +323,7 @@ export function SalesDashboard() {
                         <TableHead>Detail</TableHead>
                         <TableHead className="text-right">Target</TableHead>
                         <TableHead className="text-right">Realisasi</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -335,6 +353,27 @@ export function SalesDashboard() {
                           <TableCell className="text-right font-medium text-primary">
                             {formatCurrency(target.achievedAmount || 0)}
                           </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingTarget(target);
+                                  setShowTargetForm(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteTargetConfirm(target.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -359,11 +398,15 @@ export function SalesDashboard() {
 
       <SalesTargetForm
         open={showTargetForm}
-        onClose={() => setShowTargetForm(false)}
-        onSubmit={handleAddTarget}
+        onClose={() => {
+          setShowTargetForm(false);
+          setEditingTarget(undefined);
+        }}
+        onSubmit={handleSaveTarget}
+        existingTarget={editingTarget}
       />
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Records */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -376,6 +419,27 @@ export function SalesDashboard() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirm && handleDeleteRecord(deleteConfirm)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Targets */}
+      <AlertDialog open={!!deleteTargetConfirm} onOpenChange={() => setDeleteTargetConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Target</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus target ini? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTargetConfirm && handleDeleteTarget(deleteTargetConfirm)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Hapus

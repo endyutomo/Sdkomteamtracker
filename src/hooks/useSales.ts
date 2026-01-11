@@ -7,6 +7,7 @@ export function useSales() {
   const [targets, setTargets] = useState<SalesTarget[]>([]);
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string } | null>(null);
 
@@ -19,7 +20,7 @@ export function useSales() {
   const fetchProfiles = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('user_id, name');
+      .select('user_id, name, division');
 
     if (error) {
       console.error('Error fetching profiles:', error);
@@ -31,7 +32,13 @@ export function useSales() {
       return acc;
     }, {});
     setProfileMap(map);
-  }, []);
+
+    // Set current user profile
+    if (user) {
+      const currentProfile = data?.find(p => p.user_id === user.id);
+      setUserProfile(currentProfile);
+    }
+  }, [user]);
 
   const fetchTargets = useCallback(async () => {
     if (!user) return;
@@ -93,6 +100,8 @@ export function useSales() {
     );
   }, [user]);
 
+  const isManager = useMemo(() => userProfile?.division === 'manager', [userProfile]);
+
   // Enriched targets with achievement and userName
   const enrichedTargets = useMemo(() => {
     return targets.map(target => {
@@ -143,7 +152,9 @@ export function useSales() {
     periodYear: number,
     targetAmount: number,
     periodMonth?: number,
-    periodQuarter?: number
+    periodQuarter?: number,
+    targetUserId?: string,
+    targetId?: string
   ) => {
     if (!user) return;
 
@@ -151,7 +162,8 @@ export function useSales() {
       .from('sales_targets')
       .upsert(
         {
-          user_id: user.id,
+          id: targetId,
+          user_id: targetUserId || user.id,
           period_type: periodType,
           period_year: periodYear,
           period_month: periodMonth || null,
@@ -159,14 +171,14 @@ export function useSales() {
           target_amount: targetAmount,
         },
         {
-          onConflict: 'user_id,period_type,period_year,period_month,period_quarter',
+          onConflict: targetId ? 'id' : 'user_id,period_type,period_year,period_month,period_quarter',
         }
       )
       .select()
       .single();
 
     if (error) {
-      console.error('Error adding target:', error);
+      console.error('Error adding/updating target:', error);
       toast.error('Gagal menyimpan target');
       return;
     }
@@ -174,6 +186,22 @@ export function useSales() {
     toast.success('Target berhasil disimpan');
     await fetchTargets();
     return data;
+  };
+
+  const deleteTarget = async (id: string) => {
+    const { error } = await supabase
+      .from('sales_targets')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting target:', error);
+      toast.error('Gagal menghapus target');
+      return;
+    }
+
+    toast.success('Target berhasil dihapus');
+    await fetchTargets();
   };
 
   const addRecord = async (record: {
@@ -271,13 +299,28 @@ export function useSales() {
     month?: number,
     quarter?: number
   ) => {
-    return enrichedTargets.find(
+    const matchingTargets = enrichedTargets.filter(
       (t) =>
         t.periodType === periodType &&
         t.periodYear === year &&
         (periodType === 'monthly' ? t.periodMonth === month : true) &&
         (periodType === 'quarterly' ? t.periodQuarter === quarter : true)
     );
+
+    if (matchingTargets.length === 0) return undefined;
+
+    if (isManager) {
+      // Aggregate for manager
+      const totalAmount = matchingTargets.reduce((sum, t) => sum + t.targetAmount, 0);
+      return {
+        ...matchingTargets[0],
+        targetAmount: totalAmount,
+        isAggregate: true
+      };
+    }
+
+    // Return current user's target or the first one if not manager
+    return matchingTargets.find(t => t.userId === user?.id) || matchingTargets[0];
   };
 
   const getSalesForPeriod = (
@@ -307,8 +350,10 @@ export function useSales() {
   return {
     targets: enrichedTargets,
     records: enrichedRecords,
+    isManager,
     loading,
     addTarget,
+    deleteTarget,
     addRecord,
     updateRecord,
     deleteRecord,
