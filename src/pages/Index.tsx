@@ -13,6 +13,7 @@ import { CompanySettingsDialog } from '@/components/company/CompanySettingsDialo
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { PendingManagerRequestsDialog } from '@/components/admin/PendingManagerRequestsDialog';
+import { SalesDashboard } from '@/components/sales/SalesDashboard';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Loader2, MapPin, Phone, Mail, Users, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -293,6 +294,16 @@ const Index = () => {
                   onDelete={handleDeleteActivity}
                   onEdit={handleEditActivity}
                 />
+              </div>
+            )}
+
+            {activeTab === 'sales' && profile?.division === 'sales' && (
+              <div className="space-y-6 animate-fade-in">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Penjualan & Target</h2>
+                  <p className="text-muted-foreground">Kelola penjualan dan target Anda</p>
+                </div>
+                <SalesDashboard />
               </div>
             )}
 

@@ -361,6 +361,84 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_records: {
+        Row: {
+          closing_date: string
+          created_at: string
+          customer_name: string
+          id: string
+          notes: string | null
+          product_name: string
+          quantity: number
+          total_amount: number
+          unit_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closing_date?: string
+          created_at?: string
+          customer_name: string
+          id?: string
+          notes?: string | null
+          product_name: string
+          quantity?: number
+          total_amount: number
+          unit_price: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closing_date?: string
+          created_at?: string
+          customer_name?: string
+          id?: string
+          notes?: string | null
+          product_name?: string
+          quantity?: number
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sales_targets: {
+        Row: {
+          created_at: string
+          id: string
+          period_month: number | null
+          period_quarter: number | null
+          period_type: string
+          period_year: number
+          target_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type: string
+          period_year: number
+          target_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type?: string
+          period_year?: number
+          target_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
