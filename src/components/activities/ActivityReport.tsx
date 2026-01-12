@@ -50,6 +50,9 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { MissingActivitiesReport } from './MissingActivitiesReport';
+import { TeamActivityStats } from './TeamActivityStats';
+import { useProfile } from '@/hooks/useProfile';
+import { startOfWeek, endOfWeek } from 'date-fns';
 
 interface ActivityReportProps {
   activities: DailyActivity[];
@@ -96,9 +99,10 @@ const years = Array.from({ length: 5 }, (_, i) => ({
 }));
 
 export function ActivityReport({ activities, allProfiles }: ActivityReportProps) {
+  const { isManager } = useProfile();
   const [selectedActivity, setSelectedActivity] = useState<DailyActivity | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'date' | 'month' | 'year'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'date' | 'week' | 'month' | 'year'>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
@@ -128,6 +132,12 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         const activityDateStr = format(activityDate, 'yyyy-MM-dd');
         const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
         return activityDateStr === selectedDateStr;
+      }
+
+      if (filterType === 'week' && selectedDate) {
+        const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday start
+        const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+        return isWithinInterval(activityDate, { start: weekStart, end: weekEnd });
       }
 
       if (filterType === 'month' && selectedMonth !== '' && selectedYear) {
@@ -315,6 +325,14 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         </Button>
       </div>
 
+      {/* Team Activity Stats - Visible Only to Managers */}
+      {isManager && (
+        <TeamActivityStats
+          activities={filteredActivities}
+          allProfiles={allProfiles}
+        />
+      )}
+
       {/* Search and Filter Section */}
       <Card>
         <CardContent className="pt-6">
@@ -382,16 +400,19 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                   <SelectContent>
                     <SelectItem value="all">Semua Waktu</SelectItem>
                     <SelectItem value="date">Tanggal</SelectItem>
+                    <SelectItem value="week">Mingguan</SelectItem>
                     <SelectItem value="month">Bulan</SelectItem>
                     <SelectItem value="year">Tahun</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Date Picker */}
-              {filterType === 'date' && (
+              {/* Date/Week Picker */}
+              {(filterType === 'date' || filterType === 'week') && (
                 <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Pilih Tanggal</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    {filterType === 'date' ? 'Pilih Tanggal' : 'Pilih Tanggal dalam Minggu'}
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -492,6 +513,11 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                 {filterType === 'date' && selectedDate && (
                   <Badge variant="outline">
                     {format(selectedDate, 'dd MMMM yyyy', { locale: id })}
+                  </Badge>
+                )}
+                {filterType === 'week' && selectedDate && (
+                  <Badge variant="outline">
+                    Minggu: {format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'dd MMM', { locale: id })} - {format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'dd MMM yyyy', { locale: id })}
                   </Badge>
                 )}
                 {filterType === 'month' && selectedMonth !== '' && (
