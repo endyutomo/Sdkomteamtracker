@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Target, TrendingUp, Edit, Trash2, DollarSign, Users, ChevronDown, ChevronRight, Calendar, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 import { useSales } from '@/hooks/useSales';
 import { useProfile } from '@/hooks/useProfile';
 import { SalesRecordForm } from './SalesRecordForm';
 import { SalesTargetForm } from './SalesTargetForm';
 import { SalesAnalytics } from './SalesAnalytics';
+import { SalesLeaderboard } from './SalesLeaderboard';
 import { SalesRecord, PeriodType } from '@/types/sales';
 import {
   AlertDialog,
@@ -91,14 +93,7 @@ export function SalesDashboard() {
     ? Math.min((yearlyTotal / yearlyTarget.targetAmount) * 100, 100)
     : 0;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+
 
   const handleAddRecord = async (record: {
     customerName: string;
@@ -275,7 +270,7 @@ export function SalesDashboard() {
           <TabsTrigger value="records">Riwayat Penjualan</TabsTrigger>
           <TabsTrigger value="targets">Daftar Target</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          {isManager && <TabsTrigger value="team-report">Report Tim</TabsTrigger>}
+          <TabsTrigger value="team-report">Report Tim</TabsTrigger>
         </TabsList>
 
         <TabsContent value="records" className="mt-4">
@@ -439,64 +434,71 @@ export function SalesDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Team Report Tab - Only for Manager */}
-        {isManager && (
-          <TabsContent value="team-report" className="mt-4">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Report Penjualan Tim
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={reportPeriodType === 'monthly' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setReportPeriodType('monthly')}
-                    >
-                      Bulanan
-                    </Button>
-                    <Button
-                      variant={reportPeriodType === 'quarterly' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setReportPeriodType('quarterly')}
-                    >
-                      Kuartal
-                    </Button>
-                    <Button
-                      variant={reportPeriodType === 'yearly' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setReportPeriodType('yearly')}
-                    >
-                      Tahunan
-                    </Button>
-                  </div>
+        {/* Team Report Tab - Visible to All */}
+        <TabsContent value="team-report" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Report Penjualan Tim
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant={reportPeriodType === 'monthly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReportPeriodType('monthly')}
+                  >
+                    Bulanan
+                  </Button>
+                  <Button
+                    variant={reportPeriodType === 'quarterly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReportPeriodType('quarterly')}
+                  >
+                    Kuartal
+                  </Button>
+                  <Button
+                    variant={reportPeriodType === 'yearly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReportPeriodType('yearly')}
+                  >
+                    Tahunan
+                  </Button>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {reportPeriodType === 'monthly' && `${months[currentMonth - 1]} ${selectedYear}`}
-                  {reportPeriodType === 'quarterly' && `Q${currentQuarter} ${selectedYear}`}
-                  {reportPeriodType === 'yearly' && `Tahun ${selectedYear}`}
-                </p>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const teamReport = getSalesTeamReport(
-                    reportPeriodType,
-                    selectedYear,
-                    reportPeriodType === 'monthly' ? currentMonth : undefined,
-                    reportPeriodType === 'quarterly' ? currentQuarter : undefined
-                  );
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                {reportPeriodType === 'monthly' && `${months[currentMonth - 1]} ${selectedYear}`}
+                {reportPeriodType === 'quarterly' && `Q${currentQuarter} ${selectedYear}`}
+                {reportPeriodType === 'yearly' && `Tahun ${selectedYear}`}
+              </p>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const teamReport = getSalesTeamReport(
+                  reportPeriodType,
+                  selectedYear,
+                  reportPeriodType === 'monthly' ? currentMonth : undefined,
+                  reportPeriodType === 'quarterly' ? currentQuarter : undefined
+                ).sort((a, b) => b.achievedAmount - a.achievedAmount); // Sort by margin (achievedAmount) descending
 
-                  if (teamReport.length === 0) {
-                    return (
-                      <p className="text-center text-muted-foreground py-8">
-                        Belum ada data sales team.
-                      </p>
-                    );
-                  }
-
+                if (teamReport.length === 0) {
                   return (
+                    <p className="text-center text-muted-foreground py-8">
+                      Belum ada data sales team.
+                    </p>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {/* Leaderboard Section */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-4 px-1">Peringkat Sales (Berdasarkan Margin)</h3>
+                      <SalesLeaderboard data={teamReport} />
+                    </div>
+
+                    <h3 className="text-lg font-semibold px-1">Detail Tim</h3>
                     <div className="space-y-2">
                       {teamReport.map((sales) => (
                         <div key={sales.userId} className="border rounded-lg">
@@ -599,12 +601,12 @@ export function SalesDashboard() {
                         </div>
                       ))}
                     </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
 
         <TabsContent value="analytics" className="mt-4">
