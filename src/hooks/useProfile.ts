@@ -40,18 +40,18 @@ export function useProfile() {
         .maybeSingle();
 
       if (error) throw error;
-      
+
       if (data) {
         setProfile(data as Profile);
         setIsManager(data.division === 'manager');
-        
+
         // Check if user is superadmin
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
           .maybeSingle();
-        
+
         setIsSuperadmin(roleData?.role === 'superadmin');
       } else {
         setProfile(null);
@@ -190,12 +190,36 @@ export function useProfile() {
 
   const deleteProfile = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
+      // First get the user_id from the profile
+      const profileToDelete = allProfiles.find(p => p.id === id);
+      if (!profileToDelete) {
+        toast({
+          title: 'Error',
+          description: 'Profile tidak ditemukan',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      if (error) throw error;
+      // Call Edge Function to delete user completely
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session?.access_token}`,
+          },
+          body: JSON.stringify({ targetUserId: profileToDelete.user_id }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Gagal menghapus user');
+      }
 
       if (isManager) {
         fetchAllProfiles();
@@ -203,7 +227,7 @@ export function useProfile() {
 
       toast({
         title: 'Berhasil',
-        description: 'Profile berhasil dihapus',
+        description: 'User berhasil dihapus sepenuhnya dari sistem',
       });
     } catch (error: any) {
       toast({
