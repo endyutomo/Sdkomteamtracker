@@ -23,6 +23,12 @@ export function SalesLeaderboard({ data }: SalesLeaderboardProps) {
     // Rank 4-7 for List
     const runnersUp = sortedData.slice(3, 7);
 
+    const getAchievementColor = (percentage: number) => {
+        if (percentage >= 100) return 'text-green-600';
+        if (percentage >= 50) return 'text-yellow-600';
+        return 'text-red-600';
+    };
+
     if (topThree.length === 0) return null;
 
     return (
@@ -47,6 +53,9 @@ export function SalesLeaderboard({ data }: SalesLeaderboardProps) {
                         <CardContent className="text-center">
                             <p className="text-lg font-bold text-slate-700">
                                 {formatCurrency(topThree[1].achievedAmount)}
+                            </p>
+                            <p className={`text-sm font-semibold ${getAchievementColor(topThree[1].achievementPercentage)}`}>
+                                {topThree[1].achievementPercentage.toFixed(1)}%
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Margin Profit
@@ -80,6 +89,9 @@ export function SalesLeaderboard({ data }: SalesLeaderboardProps) {
                             <p className="text-2xl font-bold text-yellow-700">
                                 {formatCurrency(topThree[0].achievedAmount)}
                             </p>
+                            <p className={`text-lg font-bold ${getAchievementColor(topThree[0].achievementPercentage)}`}>
+                                {topThree[0].achievementPercentage.toFixed(1)}%
+                            </p>
                             <p className="text-xs text-yellow-600 mt-1 font-medium">
                                 Total Margin Profit
                             </p>
@@ -105,6 +117,9 @@ export function SalesLeaderboard({ data }: SalesLeaderboardProps) {
                         <CardContent className="text-center">
                             <p className="text-lg font-bold text-orange-700">
                                 {formatCurrency(topThree[2].achievedAmount)}
+                            </p>
+                            <p className={`text-sm font-semibold ${getAchievementColor(topThree[2].achievementPercentage)}`}>
+                                {topThree[2].achievementPercentage.toFixed(1)}%
                             </p>
                             <p className="text-xs text-orange-800/60 mt-1">
                                 Margin Profit
@@ -132,7 +147,9 @@ export function SalesLeaderboard({ data }: SalesLeaderboardProps) {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-semibold text-slate-700">{formatCurrency(sales.achievedAmount)}</p>
-                                    <p className="text-[10px] text-muted-foreground">Margin</p>
+                                    <p className={`text-xs font-medium ${getAchievementColor(sales.achievementPercentage)}`}>
+                                        {sales.achievementPercentage.toFixed(1)}%
+                                    </p>
                                 </div>
                             </div>
                         ))}
