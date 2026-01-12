@@ -71,6 +71,11 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
             );
         }
 
+        // Filter out attendance records from productivity stats
+        filteredActivities = filteredActivities.filter(a =>
+            !['sick', 'permission', 'time_off', 'wfh'].includes(a.activityType)
+        );
+
         const totalActivities = filteredActivities.length;
         if (totalActivities === 0) return [];
 

@@ -22,16 +22,16 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, Download, FileSpreadsheet, Calendar, User } from 'lucide-react';
 import { DailyActivity } from '@/types';
 import { Profile } from '@/hooks/useProfile';
-import { 
-  format, 
-  eachDayOfInterval, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
+import {
+  format,
+  eachDayOfInterval,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
   endOfMonth,
   startOfYear,
   endOfYear,
-  isWeekend, 
+  isWeekend,
   isBefore,
   startOfDay,
   getWeek,
@@ -77,6 +77,7 @@ const years = Array.from({ length: 5 }, (_, i) => ({
   label: String(currentYear - i),
 }));
 
+// Helper to check activity status
 function getMissingActivities(
   activities: DailyActivity[],
   profiles: Profile[],
@@ -90,18 +91,26 @@ function getMissingActivities(
 
   // Get all weekdays in the date range (only up to today)
   const effectiveEndDate = isBefore(endDate, today) ? endDate : today;
-  
+
   const allDays = eachDayOfInterval({ start: startDate, end: effectiveEndDate })
     .filter(date => !isWeekend(date));
 
-  // Create a map of activities by user_id and date
-  const activityMap = new Map<string, Set<string>>();
+  // Create a map of activities by user_id and date -> types
+  const activityMap = new Map<string, Map<string, Set<string>>>();
+
   activities.forEach(activity => {
-    const key = activity.userId;
-    if (!activityMap.has(key)) {
-      activityMap.set(key, new Set());
+    const userId = activity.userId;
+    const dateStr = format(new Date(activity.date), 'yyyy-MM-dd');
+
+    if (!activityMap.has(userId)) {
+      activityMap.set(userId, new Map());
     }
-    activityMap.get(key)!.add(format(new Date(activity.date), 'yyyy-MM-dd'));
+
+    if (!activityMap.get(userId)!.has(dateStr)) {
+      activityMap.get(userId)!.set(dateStr, new Set());
+    }
+
+    activityMap.get(userId)!.get(dateStr)!.add(activity.activityType);
   });
 
   const missing: MissingActivity[] = [];
@@ -109,16 +118,52 @@ function getMissingActivities(
   salesPresalesProfiles.forEach(profile => {
     allDays.forEach(date => {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const hasActivity = activityMap.get(profile.user_id)?.has(dateStr);
+      const userActivities = activityMap.get(profile.user_id)?.get(dateStr);
 
-      if (!hasActivity) {
+      let status = 'Belum ada aktivitas';
+      let isMissing = true;
+
+      if (userActivities) {
+        // Check for specific statuses
+        const hasSick = userActivities.has('sick');
+        const hasPermission = userActivities.has('permission');
+        const hasTimeOff = userActivities.has('time_off');
+        const hasWFH = userActivities.has('wfh');
+
+        // Productive activities
+        const hasProductive =
+          userActivities.has('visit') ||
+          userActivities.has('call') ||
+          userActivities.has('email') ||
+          userActivities.has('meeting') ||
+          userActivities.has('other');
+
+        if (hasSick || hasPermission || hasTimeOff) {
+          // Valid absence, considered complete
+          isMissing = false;
+        } else if (hasWFH) {
+          if (hasProductive) {
+            // WFH and working
+            isMissing = false;
+          } else {
+            // WFH but no work logged yet
+            status = 'WFH - Belum ada aktivitas sales';
+            isMissing = true;
+          }
+        } else if (hasProductive) {
+          // Normal working day
+          isMissing = false;
+        }
+      }
+
+      if (isMissing) {
         missing.push({
           profileId: profile.id,
           profileName: profile.name,
           division: profile.division,
           date: date,
           dayName: format(date, 'EEEE', { locale: id }),
-          status: 'Belum ada aktivitas'
+          status: status
         });
       }
     });
@@ -194,7 +239,7 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
   // Export to Excel
   const exportToExcel = (division: 'all' | 'sales' | 'presales') => {
     let dataToExport = missingActivities;
-    
+
     if (division === 'sales') {
       dataToExport = salesMissing;
     } else if (division === 'presales') {
@@ -216,7 +261,7 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
     // Auto-size columns
     const maxWidth = 30;
     const colWidths = Object.keys(exportData[0] || {}).map(key => ({
-      wch: Math.min(maxWidth, Math.max(key.length, ...exportData.map(row => 
+      wch: Math.min(maxWidth, Math.max(key.length, ...exportData.map(row =>
         String(row[key as keyof typeof row] || '').length
       )))
     }));

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DailyActivity, Person } from '@/types';
 import { format, differenceInHours } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X, Eye, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Calendar, Trash2, Edit2, ImageIcon, X, Eye, Clock, Stethoscope, Plane, Home } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +36,10 @@ const activityIcons = {
   email: Mail,
   meeting: Users,
   other: Calendar,
+  sick: Stethoscope,
+  permission: Clock,
+  time_off: Plane,
+  wfh: Home,
 };
 
 const activityLabels = {
@@ -44,6 +48,10 @@ const activityLabels = {
   email: 'Email',
   meeting: 'Meeting',
   other: 'Lainnya',
+  sick: 'Sakit',
+  permission: 'Ijin',
+  time_off: 'Cuti',
+  wfh: 'Work From Home',
 };
 
 const activityColors = {
@@ -52,6 +60,10 @@ const activityColors = {
   email: 'bg-warning/10 text-warning border-warning/20',
   meeting: 'bg-primary/10 text-primary border-primary/20',
   other: 'bg-muted text-muted-foreground border-muted',
+  sick: 'bg-red-100 text-red-600 border-red-200',
+  permission: 'bg-yellow-100 text-yellow-600 border-yellow-200',
+  time_off: 'bg-purple-100 text-purple-600 border-purple-200',
+  wfh: 'bg-blue-100 text-blue-600 border-blue-200',
 };
 
 export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps) {

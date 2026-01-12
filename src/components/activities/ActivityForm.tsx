@@ -23,7 +23,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2, Lock, CalendarDays } from 'lucide-react';
+import { CalendarIcon, Users, Camera, X, ImagePlus, Bell, Shield, Plus, Trash2, Lock, CalendarDays, Stethoscope, Plane, Home, Briefcase, Clock } from 'lucide-react';
 import { CollaboratorBookingCalendar } from './CollaboratorBookingCalendar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -57,11 +57,19 @@ const activityTypes: { value: ActivityType; label: string }[] = [
   { value: 'other', label: 'Lainnya' },
 ];
 
+const attendanceTypes: { value: ActivityType; label: string; icon: any; color: string }[] = [
+  { value: 'sick', label: 'Sakit', icon: Stethoscope, color: 'text-red-500' },
+  { value: 'permission', label: 'Ijin', icon: Clock, color: 'text-yellow-500' },
+  { value: 'time_off', label: 'Cuti', icon: Plane, color: 'text-purple-500' },
+  { value: 'wfh', label: 'WFH', icon: Home, color: 'text-blue-500' },
+];
+
 export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [], currentProfile, editActivity, allActivities = [] }: ActivityFormProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<ActivityCategory>('sales');
   const [personId, setPersonId] = useState('');
   const [activityType, setActivityType] = useState<ActivityType>('visit');
+  const [isAttendanceMode, setIsAttendanceMode] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [project, setProject] = useState('');
   const [opportunity, setOpportunity] = useState('');
@@ -227,11 +235,23 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     }
   }, [editActivity, open]);
 
+  // Handle mode switch based on activity type when editing
+  useEffect(() => {
+    if (editActivity) {
+      if (['sick', 'permission', 'time_off', 'wfh'].includes(editActivity.activityType)) {
+        setIsAttendanceMode(true);
+      } else {
+        setIsAttendanceMode(false);
+      }
+    }
+  }, [editActivity]);
+
   const resetForm = () => {
     setDate(new Date());
     setCategory('sales');
     setPersonId('');
     setActivityType('visit');
+    setIsAttendanceMode(false);
     setCustomerName('');
     setProject('');
     setOpportunity('');
@@ -282,15 +302,27 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       return;
     }
 
-    if (!customerName.trim()) {
+
+
+    // Auto-fill customer name for attendance mode if empty (though hidden, just in case)
+    let finalCustomerName = customerName.trim();
+    if (isAttendanceMode) {
+      // Find label
+      const typeLabel = attendanceTypes.find(t => t.value === activityType)?.label || 'Absensi';
+      finalCustomerName = typeLabel;
+    } else if (!finalCustomerName) {
       toast.error('Nama customer wajib diisi');
       return;
     }
 
-    // Location is mandatory for all activity types
-    if (!location || !location.locationName) {
-      toast.error('Lokasi dan alamat wajib diisi');
-      return;
+    // Location is mandatory for work activities, WFH, and permission
+    // But optional for sick and time_off (they might be at home/hospital)
+    const locationOptionalTypes = ['sick', 'time_off'];
+    if (!locationOptionalTypes.includes(activityType)) {
+      if (!location || !location.locationName) {
+        toast.error('Lokasi dan alamat wajib diisi');
+        return;
+      }
     }
 
     const selectedOption = availableOptions.find(p => p.id === personId);
@@ -321,7 +353,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       personId,
       personName: selectedOption?.name || '',
       activityType,
-      customerName: customerName.trim(),
+      customerName: finalCustomerName,
       project: project.trim() || undefined,
       opportunity: opportunity.trim() || undefined,
       notes: notes.trim(),
@@ -347,24 +379,98 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Category */}
-          <div className="space-y-2">
-            <Label>Kategori Aktivitas</Label>
-            <Select value={category} onValueChange={(v) => {
-              setCategory(v as ActivityCategory);
-              setPersonId('');
-            }}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sales">Aktivitas Sales</SelectItem>
-                <SelectItem value="presales">Aktivitas Presales</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Mode Toggle */}
+          {!editActivity && (
+            <div className="flex p-1 bg-muted rounded-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAttendanceMode(false);
+                  setActivityType('visit');
+                }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
+                  !isAttendanceMode ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Briefcase className="h-4 w-4" />
+                Aktivitas Kerja
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAttendanceMode(true);
+                  setActivityType('wfh'); // Default to WFH
+                }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
+                  isAttendanceMode ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <CalendarDays className="h-4 w-4" />
+                Status Kehadiran
+              </button>
+            </div>
+          )}
 
-          {/* Date */}
+          {!isAttendanceMode ? (
+            // NORMAL ACTIVITY FORM FIELDS
+            <>
+              {/* Category */}
+              {!editActivity && (
+                <div className="space-y-2">
+                  <Label>Kategori Aktivitas</Label>
+                  <Select value={category} onValueChange={(v) => {
+                    setCategory(v as ActivityCategory);
+                    setPersonId('');
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sales">Aktivitas Sales</SelectItem>
+                      <SelectItem value="presales">Aktivitas Presales</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
+          ) : (
+            // ATTENDANCE MODE FIELDS - SIMPLIFIED
+            <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Catat status kehadiran jika sedang tidak melakukan kunjungan sales reguler (Sakit, Ijin, Cuti) atau WFH.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {attendanceTypes.map((type) => {
+                  const Icon = type.icon;
+                  const isSelected = activityType === type.value;
+                  return (
+                    <div
+                      key={type.value}
+                      onClick={() => setActivityType(type.value)}
+                      className={cn(
+                        "cursor-pointer flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all hover:bg-background/80",
+                        isSelected
+                          ? `border-primary bg-background shadow-md`
+                          : "border-transparent bg-white/50 hover:border-primary/20"
+                      )}
+                    >
+                      <div className={cn("p-2 rounded-full bg-slate-100", type.color)}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className={cn("font-medium text-sm", isSelected ? "text-primary" : "text-slate-600")}>
+                        {type.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Date - Shared */}
           <div className="space-y-2">
             <Label>Tanggal</Label>
             <Popover>
@@ -400,17 +506,17 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             )}
           </div>
 
-          {/* Person */}
+          {/* Person - Shared but label dynamic */}
           <div className="space-y-2">
-            <Label>{category === 'sales' ? 'Sales Person' : 'Presales Person'}</Label>
+            <Label>{isAttendanceMode ? 'Nama Anggota Tim' : (category === 'sales' ? 'Sales Person' : 'Presales Person')}</Label>
             <Select value={personId} onValueChange={setPersonId}>
               <SelectTrigger>
-                <SelectValue placeholder={`Pilih ${category === 'sales' ? 'sales' : 'presales'} person`} />
+                <SelectValue placeholder="Pilih anggota tim" />
               </SelectTrigger>
               <SelectContent>
                 {availableOptions.length === 0 ? (
                   <div className="p-2 text-sm text-muted-foreground">
-                    Belum ada anggota {category} terdaftar.
+                    Belum ada anggota terdaftar.
                   </div>
                 ) : (
                   availableOptions.map((option) => (
@@ -428,107 +534,121 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             </Select>
           </div>
 
-          {/* Activity Type */}
-          <div className="space-y-2">
-            <Label>Tipe Aktivitas</Label>
-            <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {activityTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
-          {/* Customer Name - Mandatory */}
-          <div className="space-y-2">
-            <Label>Nama Customer <span className="text-destructive">*</span></Label>
-            <Input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Masukkan nama customer"
-              required
-            />
-          </div>
-
-          {/* Project */}
-          <div className="space-y-2">
-            <Label>Project</Label>
-            <Input
-              value={project}
-              onChange={(e) => setProject(e.target.value)}
-              placeholder="Nama project (opsional)"
-            />
-          </div>
-
-          {/* Opportunity */}
-          <div className="space-y-2">
-            <Label>Opportunity</Label>
-            <Input
-              value={opportunity}
-              onChange={(e) => setOpportunity(e.target.value)}
-              placeholder="Nama opportunity (opsional)"
-            />
-          </div>
-
-          {/* Photo Upload (only for visit) */}
-          {activityType === 'visit' && (
-            <div className="space-y-3 rounded-lg border border-border p-4">
-              <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-muted-foreground" />
-                <Label className="font-medium">Foto Kunjungan</Label>
+          {!isAttendanceMode && (
+            <>
+              {/* Activity Type Standard */}
+              <div className="space-y-2">
+                <Label>Tipe Aktivitas</Label>
+                <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activityTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
+              {/* Customer Name */}
+              <div className="space-y-2">
+                <Label>Nama Customer <span className="text-destructive">*</span></Label>
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Masukkan nama customer"
+                  required
+                />
+              </div>
 
-              <div className="flex flex-wrap gap-3">
-                {photos.map((photo, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={photo}
-                      alt={`Foto ${index + 1}`}
-                      className="h-20 w-20 rounded-lg object-cover border border-border"
-                    />
+              {/* Project */}
+              <div className="space-y-2">
+                <Label>Project</Label>
+                <Input
+                  value={project}
+                  onChange={(e) => setProject(e.target.value)}
+                  placeholder="Nama project (opsional)"
+                />
+              </div>
+
+              {/* Opportunity */}
+              <div className="space-y-2">
+                <Label>Opportunity</Label>
+                <Input
+                  value={opportunity}
+                  onChange={(e) => setOpportunity(e.target.value)}
+                  placeholder="Nama opportunity (opsional)"
+                />
+              </div>
+
+              {/* Photo Upload (only for visit) */}
+              {activityType === 'visit' && (
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-4 w-4 text-muted-foreground" />
+                    <Label className="font-medium">Foto Kunjungan</Label>
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+
+                  <div className="flex flex-wrap gap-3">
+                    {photos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={photo}
+                          alt={`Foto ${index + 1}`}
+                          className="h-20 w-20 rounded-lg object-cover border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+
                     <button
                       type="button"
-                      onClick={() => removePhoto(index)}
-                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-20 w-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                     >
-                      <X className="h-3 w-3" />
+                      <ImagePlus className="h-5 w-5" />
+                      <span className="text-xs">Tambah</span>
                     </button>
                   </div>
-                ))}
 
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="h-20 w-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <ImagePlus className="h-5 w-5" />
-                  <span className="text-xs">Tambah</span>
-                </button>
-              </div>
+                  <p className="text-xs text-muted-foreground">
+                    Maksimal 5MB per foto. Format: JPG, PNG, WebP
+                  </p>
+                </div>
+              )}
+            </>
+          )}
 
-              <p className="text-xs text-muted-foreground">
-                Maksimal 5MB per foto. Format: JPG, PNG, WebP
+          {/* Location Picker - Optional for sick and time_off */}
+          {!['sick', 'time_off'].includes(activityType) ? (
+            <LocationPicker value={location} onChange={setLocation} required />
+          ) : (
+            <div className="space-y-2">
+              <LocationPicker value={location} onChange={setLocation} required={false} />
+              <p className="text-xs text-muted-foreground italic">
+                * Lokasi opsional untuk status Sakit/Cuti
               </p>
             </div>
           )}
-
-          {/* Location Picker - Mandatory for all activity types */}
-          <LocationPicker value={location} onChange={setLocation} required />
 
           {/* Collaboration - Available for all activity types */}
           <div className="space-y-4 rounded-lg border border-border p-4">
