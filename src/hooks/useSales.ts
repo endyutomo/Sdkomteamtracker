@@ -125,7 +125,7 @@ export function useSales() {
         return true;
       });
 
-      const achievedAmount = achievements.reduce((sum, r) => sum + r.totalAmount, 0);
+      const achievedAmount = achievements.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
 
       return {
         ...target,

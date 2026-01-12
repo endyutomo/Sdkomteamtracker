@@ -64,9 +64,9 @@ export function SalesDashboard() {
   const quarterlySales = getSalesForPeriod('quarterly', currentYear, undefined, currentQuarter);
   const yearlySales = getSalesForPeriod('yearly', currentYear);
 
-  const monthlyTotal = monthlySales.reduce((sum, r) => sum + r.totalAmount, 0);
-  const quarterlyTotal = quarterlySales.reduce((sum, r) => sum + r.totalAmount, 0);
-  const yearlyTotal = yearlySales.reduce((sum, r) => sum + r.totalAmount, 0);
+  const monthlyTotal = monthlySales.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
+  const quarterlyTotal = quarterlySales.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
+  const yearlyTotal = yearlySales.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
 
   const monthlyAchievement = monthlyTarget
     ? Math.min((monthlyTotal / monthlyTarget.targetAmount) * 100, 100)
@@ -164,7 +164,7 @@ export function SalesDashboard() {
             </div>
             <div className="mt-2">
               <div className="flex justify-between text-sm mb-1">
-                <span>Tercapai: {formatCurrency(monthlyTotal)}</span>
+                <span>Tercapai (Margin): {formatCurrency(monthlyTotal)}</span>
                 <span>{monthlyAchievement.toFixed(0)}%</span>
               </div>
               <Progress value={monthlyAchievement} className="h-2" />
@@ -188,7 +188,7 @@ export function SalesDashboard() {
             </div>
             <div className="mt-2">
               <div className="flex justify-between text-sm mb-1">
-                <span>Tercapai: {formatCurrency(quarterlyTotal)}</span>
+                <span>Tercapai (Margin): {formatCurrency(quarterlyTotal)}</span>
                 <span>{quarterlyAchievement.toFixed(0)}%</span>
               </div>
               <Progress value={quarterlyAchievement} className="h-2" />
@@ -210,7 +210,7 @@ export function SalesDashboard() {
             </div>
             <div className="mt-2">
               <div className="flex justify-between text-sm mb-1">
-                <span>Tercapai: {formatCurrency(yearlyTotal)}</span>
+                <span>Tercapai (Margin): {formatCurrency(yearlyTotal)}</span>
                 <span>{yearlyAchievement.toFixed(0)}%</span>
               </div>
               <Progress value={yearlyAchievement} className="h-2" />
