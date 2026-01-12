@@ -92,6 +92,7 @@ export function useSales() {
         quantity: r.quantity,
         unitPrice: Number(r.unit_price),
         costPrice: Number(r.cost_price || 0),
+        otherExpense: Number(r.other_expense || 0),
         totalAmount: Number(r.total_amount),
         marginAmount: r.margin_amount ? Number(r.margin_amount) : undefined,
         marginPercentage: r.margin_percentage ? Number(r.margin_percentage) : undefined,
@@ -213,6 +214,7 @@ export function useSales() {
     quantity: number;
     unitPrice: number;
     costPrice: number;
+    otherExpense: number;
     closingDate: Date;
     notes?: string;
   }) => {
@@ -229,6 +231,7 @@ export function useSales() {
         quantity: record.quantity,
         unit_price: record.unitPrice,
         cost_price: record.costPrice,
+        other_expense: record.otherExpense,
         total_amount: totalAmount,
         closing_date: record.closingDate.toISOString().split('T')[0],
         notes: record.notes || null,
@@ -255,6 +258,7 @@ export function useSales() {
       quantity: number;
       unitPrice: number;
       costPrice: number;
+      otherExpense: number;
       closingDate: Date;
       notes?: string;
     }
@@ -271,6 +275,7 @@ export function useSales() {
         quantity: record.quantity,
         unit_price: record.unitPrice,
         cost_price: record.costPrice,
+        other_expense: record.otherExpense,
         total_amount: totalAmount,
         closing_date: record.closingDate.toISOString().split('T')[0],
         notes: record.notes || null,

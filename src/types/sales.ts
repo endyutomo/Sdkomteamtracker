@@ -22,6 +22,7 @@ export interface SalesRecord {
   quantity: number;
   unitPrice: number;
   costPrice: number;
+  otherExpense: number;
   totalAmount: number;
   marginAmount?: number;
   marginPercentage?: number;

@@ -21,6 +21,7 @@ interface SalesRecordFormProps {
     quantity: number;
     unitPrice: number;
     costPrice: number;
+    otherExpense: number;
     closingDate: Date;
     notes?: string;
   }) => Promise<void>;
@@ -33,6 +34,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   const [costPrice, setCostPrice] = useState(0);
+  const [otherExpense, setOtherExpense] = useState(0);
   const [closingDate, setClosingDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +46,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
       setQuantity(editRecord.quantity);
       setUnitPrice(editRecord.unitPrice);
       setCostPrice(editRecord.costPrice || 0);
+      setOtherExpense(editRecord.otherExpense || 0);
       setClosingDate(editRecord.closingDate);
       setNotes(editRecord.notes || '');
     } else {
@@ -57,6 +60,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
     setQuantity(1);
     setUnitPrice(0);
     setCostPrice(0);
+    setOtherExpense(0);
     setClosingDate(new Date());
     setNotes('');
   };
@@ -76,6 +80,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
         quantity,
         unitPrice,
         costPrice,
+        otherExpense,
         closingDate,
         notes: notes.trim() || undefined,
       });
@@ -87,7 +92,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
   };
 
   const totalAmount = quantity * unitPrice;
-  const marginAmount = totalAmount - (costPrice * quantity);
+  const marginAmount = totalAmount - (costPrice * quantity) - otherExpense;
   const marginPercentage = totalAmount > 0 ? (marginAmount / totalAmount) * 100 : 0;
 
   const formatCurrency = (value: number) => {
@@ -163,6 +168,18 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
               value={costPrice}
               onChange={(e) => setCostPrice(Number(e.target.value))}
               placeholder="Masukkan harga modal per unit"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="otherExpense">Biaya Lain-lain (Rp)</Label>
+            <Input
+              id="otherExpense"
+              type="number"
+              min="0"
+              value={otherExpense}
+              onChange={(e) => setOtherExpense(Number(e.target.value))}
+              placeholder="Masukkan biaya lain-lain (ongkir, dll)"
             />
           </div>
 
