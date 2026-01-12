@@ -8,6 +8,7 @@ export function useSales() {
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [salesProfiles, setSalesProfiles] = useState<Array<{ userId: string; name: string; division: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string } | null>(null);
 
@@ -38,6 +39,14 @@ export function useSales() {
       const currentProfile = data?.find(p => p.user_id === user.id);
       setUserProfile(currentProfile);
     }
+
+    // Set sales profiles (only sales division users)
+    const salesList = (data || []).filter(p => p.division === 'sales').map(p => ({
+      userId: p.user_id,
+      name: p.name,
+      division: p.division,
+    }));
+    setSalesProfiles(salesList);
   }, [user]);
 
   const fetchTargets = useCallback(async () => {
@@ -359,9 +368,57 @@ export function useSales() {
     });
   };
 
+  // Get sales team report for manager
+  const getSalesTeamReport = useCallback((
+    periodType: PeriodType,
+    year: number,
+    month?: number,
+    quarter?: number
+  ) => {
+    return salesProfiles.map(sales => {
+      // Find target for this sales and period
+      const target = enrichedTargets.find(t =>
+        t.userId === sales.userId &&
+        t.periodType === periodType &&
+        t.periodYear === year &&
+        (periodType === 'monthly' ? t.periodMonth === month : true) &&
+        (periodType === 'quarterly' ? t.periodQuarter === quarter : true)
+      );
+
+      // Filter records for this sales and period
+      const salesRecords = enrichedRecords.filter(r => {
+        if (r.userId !== sales.userId) return false;
+        const date = r.closingDate;
+        const recordYear = date.getFullYear();
+        const recordMonth = date.getMonth() + 1;
+        const recordQuarter = Math.ceil(recordMonth / 3);
+
+        if (recordYear !== year) return false;
+        if (periodType === 'monthly' && recordMonth !== month) return false;
+        if (periodType === 'quarterly' && recordQuarter !== quarter) return false;
+        return true;
+      });
+
+      const achievedAmount = salesRecords.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
+      const targetAmount = target?.targetAmount || 0;
+      const achievementPercentage = targetAmount > 0 ? (achievedAmount / targetAmount) * 100 : 0;
+
+      return {
+        userId: sales.userId,
+        userName: sales.name,
+        division: sales.division,
+        targetAmount,
+        achievedAmount,
+        achievementPercentage,
+        records: salesRecords,
+      };
+    });
+  }, [salesProfiles, enrichedTargets, enrichedRecords]);
+
   return {
     targets: enrichedTargets,
     records: enrichedRecords,
+    salesProfiles,
     isManager,
     loading,
     addTarget,
@@ -371,6 +428,7 @@ export function useSales() {
     deleteRecord,
     getTargetForPeriod,
     getSalesForPeriod,
+    getSalesTeamReport,
     refetch: () => Promise.all([fetchProfiles(), fetchTargets(), fetchRecords()]),
   };
 }

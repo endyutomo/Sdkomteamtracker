@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Target, TrendingUp, Edit, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Target, TrendingUp, Edit, Trash2, DollarSign, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useSales } from '@/hooks/useSales';
@@ -40,6 +40,7 @@ export function SalesDashboard() {
     deleteRecord,
     getTargetForPeriod,
     getSalesForPeriod,
+    getSalesTeamReport,
     isManager,
   } = useSales();
 
@@ -49,6 +50,8 @@ export function SalesDashboard() {
   const [editingTarget, setEditingTarget] = useState<any | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteTargetConfirm, setDeleteTargetConfirm] = useState<string | null>(null);
+  const [expandedSalesId, setExpandedSalesId] = useState<string | null>(null);
+  const [reportPeriodType, setReportPeriodType] = useState<PeriodType>('monthly');
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -237,6 +240,7 @@ export function SalesDashboard() {
         <TabsList>
           <TabsTrigger value="records">Riwayat Penjualan</TabsTrigger>
           <TabsTrigger value="targets">Daftar Target</TabsTrigger>
+          {isManager && <TabsTrigger value="team-report">Report Tim</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="records" className="mt-4">
@@ -399,6 +403,173 @@ export function SalesDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Team Report Tab - Only for Manager */}
+        {isManager && (
+          <TabsContent value="team-report" className="mt-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Report Penjualan Tim
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={reportPeriodType === 'monthly' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setReportPeriodType('monthly')}
+                    >
+                      Bulanan
+                    </Button>
+                    <Button
+                      variant={reportPeriodType === 'quarterly' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setReportPeriodType('quarterly')}
+                    >
+                      Kuartal
+                    </Button>
+                    <Button
+                      variant={reportPeriodType === 'yearly' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setReportPeriodType('yearly')}
+                    >
+                      Tahunan
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {reportPeriodType === 'monthly' && `${months[currentMonth - 1]} ${currentYear}`}
+                  {reportPeriodType === 'quarterly' && `Q${currentQuarter} ${currentYear}`}
+                  {reportPeriodType === 'yearly' && `Tahun ${currentYear}`}
+                </p>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const teamReport = getSalesTeamReport(
+                    reportPeriodType,
+                    currentYear,
+                    reportPeriodType === 'monthly' ? currentMonth : undefined,
+                    reportPeriodType === 'quarterly' ? currentQuarter : undefined
+                  );
+
+                  if (teamReport.length === 0) {
+                    return (
+                      <p className="text-center text-muted-foreground py-8">
+                        Belum ada data sales team.
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      {teamReport.map((sales) => (
+                        <div key={sales.userId} className="border rounded-lg">
+                          <div
+                            className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedSalesId(
+                              expandedSalesId === sales.userId ? null : sales.userId
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {expandedSalesId === sales.userId ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <div>
+                                  <p className="font-medium">{sales.userName}</p>
+                                  <p className="text-sm text-muted-foreground capitalize">
+                                    {sales.division}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">
+                                  {formatCurrency(sales.achievedAmount)}
+                                  <span className="text-muted-foreground font-normal">
+                                    {' '}/ {formatCurrency(sales.targetAmount)}
+                                  </span>
+                                </p>
+                                <p className={`text-sm font-medium ${sales.achievementPercentage >= 100
+                                    ? 'text-green-600'
+                                    : sales.achievementPercentage >= 50
+                                      ? 'text-yellow-600'
+                                      : 'text-red-600'
+                                  }`}>
+                                  {sales.achievementPercentage.toFixed(1)}%
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-3">
+                              <Progress
+                                value={Math.min(sales.achievementPercentage, 100)}
+                                className="h-2"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Expanded Detail */}
+                          {expandedSalesId === sales.userId && (
+                            <div className="border-t bg-muted/30 p-4">
+                              <h4 className="font-medium mb-3 text-sm">
+                                Detail Transaksi ({sales.records.length} transaksi)
+                              </h4>
+                              {sales.records.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                  Belum ada transaksi pada periode ini.
+                                </p>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Tanggal</TableHead>
+                                        <TableHead>Customer</TableHead>
+                                        <TableHead>Produk</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="text-right">Margin</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {sales.records.map((record) => (
+                                        <TableRow key={record.id}>
+                                          <TableCell className="text-sm">
+                                            {format(record.closingDate, 'dd MMM', { locale: id })}
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            {record.customerName}
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            {record.productName}
+                                          </TableCell>
+                                          <TableCell className="text-right text-sm">
+                                            {formatCurrency(record.totalAmount)}
+                                          </TableCell>
+                                          <TableCell className={`text-right text-sm font-medium ${(record.marginAmount || 0) >= 0
+                                              ? 'text-green-600'
+                                              : 'text-red-600'
+                                            }`}>
+                                            {formatCurrency(record.marginAmount || 0)}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Forms */}
