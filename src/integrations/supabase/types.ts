@@ -371,6 +371,7 @@ export type Database = {
           margin_amount: number | null
           margin_percentage: number | null
           notes: string | null
+          other_expense: number | null
           product_name: string
           quantity: number
           total_amount: number
@@ -387,6 +388,7 @@ export type Database = {
           margin_amount?: number | null
           margin_percentage?: number | null
           notes?: string | null
+          other_expense?: number | null
           product_name: string
           quantity?: number
           total_amount: number
@@ -403,6 +405,7 @@ export type Database = {
           margin_amount?: number | null
           margin_percentage?: number | null
           notes?: string | null
+          other_expense?: number | null
           product_name?: string
           quantity?: number
           total_amount?: number

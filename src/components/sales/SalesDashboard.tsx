@@ -93,6 +93,7 @@ export function SalesDashboard() {
     quantity: number;
     unitPrice: number;
     costPrice: number;
+    otherExpense: number;
     closingDate: Date;
     notes?: string;
   }) => {
@@ -105,6 +106,7 @@ export function SalesDashboard() {
     quantity: number;
     unitPrice: number;
     costPrice: number;
+    otherExpense: number;
     closingDate: Date;
     notes?: string;
   }) => {
