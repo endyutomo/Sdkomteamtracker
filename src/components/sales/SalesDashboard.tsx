@@ -27,6 +27,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 const months = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -60,6 +67,7 @@ export function SalesDashboard() {
   const [deleteTargetConfirm, setDeleteTargetConfirm] = useState<string | null>(null);
   const [expandedSalesId, setExpandedSalesId] = useState<string | null>(null);
   const [reportPeriodType, setReportPeriodType] = useState<PeriodType>('monthly');
+  const [showYearlyDetail, setShowYearlyDetail] = useState(false);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -234,12 +242,15 @@ export function SalesDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-primary/50 transition-colors group"
+          onClick={() => setShowYearlyDetail(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               {isManager ? 'Target Tim Tahunan' : 'Target Tahunan'}
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -729,6 +740,73 @@ export function SalesDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+
+      {/* Yearly Detail Dialog */}
+      <Dialog open={showYearlyDetail} onOpenChange={setShowYearlyDetail}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detail Target Tim Tahunan - {selectedYear}</DialogTitle>
+            <DialogDescription>
+              Breakdown target dan realisasi margin per anggota sales.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="grid gap-4 md:grid-cols-2 mb-6">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Total Target Tim</p>
+                <p className="text-2xl font-bold">{formatCurrency(yearlyTarget?.targetAmount || 0)}</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Total Pencapaian (Margin)</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(yearlyTotal)}</p>
+                <div className="mt-2 text-sm">
+                  Pencapaian: {yearlyAchievement.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Sales</TableHead>
+                    <TableHead className="text-right">Target</TableHead>
+                    <TableHead className="text-right">Realisasi (Margin)</TableHead>
+                    <TableHead className="text-right">Pencapaian</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getSalesTeamReport('yearly', selectedYear).map((sales) => (
+                    <TableRow key={sales.userId}>
+                      <TableCell className="font-medium">{sales.userName}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(sales.targetAmount)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(sales.achievedAmount)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`font-medium ${sales.achievementPercentage >= 100 ? 'text-green-600' :
+                              sales.achievementPercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                            {sales.achievementPercentage.toFixed(1)}%
+                          </span>
+                          <Progress value={Math.min(sales.achievementPercentage, 100)} className="h-1 w-20" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {getSalesTeamReport('yearly', selectedYear).length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        Belum ada data sales team.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
