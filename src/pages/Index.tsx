@@ -155,9 +155,7 @@ const Index = () => {
         <ProfileForm
           open={true}
           onSubmit={createProfile}
-          onManagerRequest={createRequest}
           userEmail={user.email || ''}
-          pendingRequest={myRequest}
           isNewUser={true}
         />
       </div>

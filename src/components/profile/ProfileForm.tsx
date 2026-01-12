@@ -18,13 +18,13 @@ interface ProfileFormProps {
   isNewUser?: boolean;
 }
 
-export function ProfileForm({ 
-  open, 
-  onSubmit, 
+export function ProfileForm({
+  open,
+  onSubmit,
   onManagerRequest,
   userEmail = '',
   pendingRequest,
-  isNewUser = true 
+  isNewUser = true
 }: ProfileFormProps) {
   const [name, setName] = useState('');
   const [jabatan, setJabatan] = useState('');
@@ -39,52 +39,12 @@ export function ProfileForm({
 
     try {
       // If division is manager, send request for approval
-      if (division === 'manager' && onManagerRequest) {
-        await onManagerRequest({
-          name: name.trim(),
-          jabatan: jabatan.trim(),
-          email: userEmail,
-        });
-      } else {
-        onSubmit({ name: name.trim(), jabatan: jabatan.trim(), division });
-      }
+      await onSubmit({ name: name.trim(), jabatan: jabatan.trim(), division });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show pending status if user has a pending manager request
-  if (pendingRequest && pendingRequest.status === 'pending') {
-    return (
-      <Dialog open={open}>
-        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-warning" />
-              Menunggu Persetujuan
-            </DialogTitle>
-            <DialogDescription>
-              Permintaan pendaftaran sebagai Manager sedang diproses
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Alert className="border-warning/50 bg-warning/10">
-            <AlertTriangle className="h-4 w-4 text-warning" />
-            <AlertDescription className="text-sm">
-              Permintaan Anda untuk mendaftar sebagai <strong>Manager</strong> sedang menunggu persetujuan dari Superadmin. 
-              Anda akan menerima notifikasi setelah permintaan diproses.
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p><strong>Nama:</strong> {pendingRequest.name}</p>
-            <p><strong>Email:</strong> {pendingRequest.email}</p>
-            {pendingRequest.jabatan && <p><strong>Jabatan:</strong> {pendingRequest.jabatan}</p>}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open}>
@@ -128,17 +88,9 @@ export function ProfileForm({
             </Select>
           </div>
 
-          {division === 'manager' && (
-            <Alert className="border-warning/50 bg-warning/10">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <AlertDescription className="text-sm">
-                Pendaftaran sebagai Manager memerlukan persetujuan dari Superadmin. Anda akan menerima notifikasi setelah permintaan diproses.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Mengirim...' : division === 'manager' ? 'Kirim Permintaan' : 'Simpan Profile'}
+            {isSubmitting ? 'Menyimpan...' : 'Simpan Profile'}
           </Button>
         </form>
       </DialogContent>
