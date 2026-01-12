@@ -66,6 +66,11 @@ export function SalesDashboard() {
   const currentMonth = currentDate.getMonth() + 1;
   const currentQuarter = Math.ceil(currentMonth / 3);
 
+  // States for Team Report Filtering
+  const [reportYear, setReportYear] = useState(currentDate.getFullYear());
+  const [reportMonth, setReportMonth] = useState(currentDate.getMonth() + 1);
+  const [reportQuarter, setReportQuarter] = useState(Math.ceil((currentDate.getMonth() + 1) / 3));
+
 
   const availableYears = getAvailableYears();
   const years = availableYears.length > 0 ? availableYears : [new Date().getFullYear()];
@@ -467,19 +472,63 @@ export function SalesDashboard() {
                   </Button>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {reportPeriodType === 'monthly' && `${months[currentMonth - 1]} ${selectedYear}`}
-                {reportPeriodType === 'quarterly' && `Q${currentQuarter} ${selectedYear}`}
-                {reportPeriodType === 'yearly' && `Tahun ${selectedYear}`}
-              </p>
+
+              {/* Filters Section */}
+              <div className="flex gap-3 mt-4 items-center flex-wrap">
+                {/* Year Selector */}
+                <Select value={reportYear.toString()} onValueChange={(v) => setReportYear(parseInt(v))}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.length > 0 ? (
+                      availableYears.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value={new Date().getFullYear().toString()}>{new Date().getFullYear()}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+
+                {/* Month Selector */}
+                {reportPeriodType === 'monthly' && (
+                  <Select value={reportMonth.toString()} onValueChange={(v) => setReportMonth(parseInt(v))}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Bulan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={index + 1} value={(index + 1).toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {/* Quarter Selector */}
+                {reportPeriodType === 'quarterly' && (
+                  <Select value={reportQuarter.toString()} onValueChange={(v) => setReportQuarter(parseInt(v))}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Kuartal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4].map((q) => (
+                        <SelectItem key={q} value={q.toString()}>Kuartal {q}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {(() => {
                 const teamReport = getSalesTeamReport(
                   reportPeriodType,
-                  selectedYear,
-                  reportPeriodType === 'monthly' ? currentMonth : undefined,
-                  reportPeriodType === 'quarterly' ? currentQuarter : undefined
+                  reportYear,
+                  reportPeriodType === 'monthly' ? reportMonth : undefined,
+                  reportPeriodType === 'quarterly' ? reportQuarter : undefined
                 ).sort((a, b) => b.achievedAmount - a.achievedAmount); // Sort by margin (achievedAmount) descending
 
                 if (teamReport.length === 0) {
