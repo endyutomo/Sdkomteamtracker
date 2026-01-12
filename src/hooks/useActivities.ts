@@ -8,14 +8,14 @@ import type { TablesInsert, Json } from '@/integrations/supabase/types';
 // Helper function to parse collaboration data from JSON
 const parseCollaboration = (data: Json | null): Collaboration | undefined => {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined;
-  
+
   const obj = data as Record<string, unknown>;
-  
+
   return {
     division: (obj.division as 'presales' | 'other') || 'other',
     personId: obj.personId as string | undefined,
     personName: (obj.personName as string) || '',
-    collaborators: Array.isArray(obj.collaborators) 
+    collaborators: Array.isArray(obj.collaborators)
       ? (obj.collaborators as CollaborationPerson[])
       : undefined,
   };
@@ -81,8 +81,8 @@ export function useActivities() {
     try {
       const insertData: TablesInsert<'activities'> = {
         user_id: user.id,
-        date: activity.date instanceof Date 
-          ? activity.date.toISOString().split('T')[0] 
+        date: activity.date instanceof Date
+          ? activity.date.toISOString().split('T')[0]
           : String(activity.date),
         category: activity.category,
         person_id: activity.personId || null,
@@ -97,8 +97,8 @@ export function useActivities() {
         latitude: activity.latitude ?? null,
         longitude: activity.longitude ?? null,
         location_name: activity.locationName ?? null,
-        reminder_at: activity.reminderAt instanceof Date 
-          ? activity.reminderAt.toISOString() 
+        reminder_at: activity.reminderAt instanceof Date
+          ? activity.reminderAt.toISOString()
           : activity.reminderAt ?? null,
       };
 
@@ -179,7 +179,7 @@ export function useActivities() {
         .single();
 
       if (profile?.user_id) {
-        const formattedDate = activityDate instanceof Date 
+        const formattedDate = activityDate instanceof Date
           ? activityDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
           : new Date(activityDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -196,10 +196,10 @@ export function useActivities() {
   const updateActivity = async (id: string, updates: Partial<Omit<DailyActivity, 'id' | 'createdAt'>>) => {
     try {
       const updateData: Record<string, unknown> = {};
-      
+
       if (updates.date !== undefined) {
-        updateData.date = updates.date instanceof Date 
-          ? updates.date.toISOString().split('T')[0] 
+        updateData.date = updates.date instanceof Date
+          ? updates.date.toISOString().split('T')[0]
           : updates.date;
       }
       if (updates.category !== undefined) updateData.category = updates.category;
@@ -216,8 +216,8 @@ export function useActivities() {
       if (updates.longitude !== undefined) updateData.longitude = updates.longitude ?? null;
       if (updates.locationName !== undefined) updateData.location_name = updates.locationName ?? null;
       if (updates.reminderAt !== undefined) {
-        updateData.reminder_at = updates.reminderAt instanceof Date 
-          ? updates.reminderAt.toISOString() 
+        updateData.reminder_at = updates.reminderAt instanceof Date
+          ? updates.reminderAt.toISOString()
           : updates.reminderAt ?? null;
       }
 
@@ -259,5 +259,33 @@ export function useActivities() {
     updateActivity,
     deleteActivity,
     refetch: fetchActivities,
+    getAvailableYears: useCallback(() => {
+      const years = activities.map(a => new Date(a.date).getFullYear());
+      return [...new Set(years)].sort((a, b) => b - a);
+    }, [activities]),
+    getMonthlyActivityTrend: useCallback((year: number) => {
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+
+      return months.map((monthName, index) => {
+        const month = index + 1;
+        const monthActivities = activities.filter(a => {
+          const d = new Date(a.date);
+          return d.getFullYear() === year && (d.getMonth() + 1) === month;
+        });
+
+        const salesCount = monthActivities.filter(a => a.category === 'sales').length;
+        const presalesCount = monthActivities.filter(a => a.category === 'presales').length;
+
+        return {
+          month: monthName,
+          sales: salesCount,
+          presales: presalesCount,
+          total: salesCount + presalesCount,
+        };
+      });
+    }, [activities]),
   };
 }

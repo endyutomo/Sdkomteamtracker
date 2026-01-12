@@ -5,12 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Target, TrendingUp, Edit, Trash2, DollarSign, Users, ChevronDown, ChevronRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Target, TrendingUp, Edit, Trash2, DollarSign, Users, ChevronDown, ChevronRight, Calendar, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useSales } from '@/hooks/useSales';
 import { SalesRecordForm } from './SalesRecordForm';
 import { SalesTargetForm } from './SalesTargetForm';
+import { SalesAnalytics } from './SalesAnalytics';
 import { SalesRecord, PeriodType } from '@/types/sales';
 import {
   AlertDialog,
@@ -41,6 +43,8 @@ export function SalesDashboard() {
     getTargetForPeriod,
     getSalesForPeriod,
     getSalesTeamReport,
+    getAvailableYears,
+    getMonthlyTrend,
     isManager,
   } = useSales();
 
@@ -54,18 +58,22 @@ export function SalesDashboard() {
   const [reportPeriodType, setReportPeriodType] = useState<PeriodType>('monthly');
 
   const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const currentMonth = currentDate.getMonth() + 1;
   const currentQuarter = Math.ceil(currentMonth / 3);
 
-  // Calculate summaries
-  const monthlyTarget = getTargetForPeriod('monthly', currentYear, currentMonth);
-  const quarterlyTarget = getTargetForPeriod('quarterly', currentYear, undefined, currentQuarter);
-  const yearlyTarget = getTargetForPeriod('yearly', currentYear);
 
-  const monthlySales = getSalesForPeriod('monthly', currentYear, currentMonth);
-  const quarterlySales = getSalesForPeriod('quarterly', currentYear, undefined, currentQuarter);
-  const yearlySales = getSalesForPeriod('yearly', currentYear);
+  const availableYears = getAvailableYears();
+  const years = availableYears.length > 0 ? availableYears : [new Date().getFullYear()];
+
+  // Calculate summaries
+  const monthlyTarget = getTargetForPeriod('monthly', selectedYear, currentMonth);
+  const quarterlyTarget = getTargetForPeriod('quarterly', selectedYear, undefined, currentQuarter);
+  const yearlyTarget = getTargetForPeriod('yearly', selectedYear);
+
+  const monthlySales = getSalesForPeriod('monthly', selectedYear, currentMonth);
+  const quarterlySales = getSalesForPeriod('quarterly', selectedYear, undefined, currentQuarter);
+  const yearlySales = getSalesForPeriod('yearly', selectedYear);
 
   const monthlyTotal = monthlySales.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
   const quarterlyTotal = quarterlySales.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
@@ -152,6 +160,28 @@ export function SalesDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard Penjualan</h2>
+          <p className="text-muted-foreground">
+            Overview kinerja penjualan tahun {selectedYear}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-background/95 p-1 rounded-lg border">
+          <Calendar className="h-4 w-4 text-muted-foreground ml-2" />
+          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-[120px] border-none shadow-none focus:ring-0">
+              <SelectValue placeholder="Pilih Tahun" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -173,7 +203,7 @@ export function SalesDashboard() {
               <Progress value={monthlyAchievement} className="h-2" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {months[currentMonth - 1]} {currentYear}
+              {months[currentMonth - 1]} {selectedYear}
             </p>
           </CardContent>
         </Card>
@@ -196,7 +226,7 @@ export function SalesDashboard() {
               </div>
               <Progress value={quarterlyAchievement} className="h-2" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Q{currentQuarter} {currentYear}</p>
+            <p className="text-xs text-muted-foreground mt-2">Q{currentQuarter} {selectedYear}</p>
           </CardContent>
         </Card>
 
@@ -218,7 +248,7 @@ export function SalesDashboard() {
               </div>
               <Progress value={yearlyAchievement} className="h-2" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Tahun {currentYear}</p>
+            <p className="text-xs text-muted-foreground mt-2">Tahun {selectedYear}</p>
           </CardContent>
         </Card>
       </div>
@@ -240,6 +270,7 @@ export function SalesDashboard() {
         <TabsList>
           <TabsTrigger value="records">Riwayat Penjualan</TabsTrigger>
           <TabsTrigger value="targets">Daftar Target</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           {isManager && <TabsTrigger value="team-report">Report Tim</TabsTrigger>}
         </TabsList>
 
@@ -439,16 +470,16 @@ export function SalesDashboard() {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {reportPeriodType === 'monthly' && `${months[currentMonth - 1]} ${currentYear}`}
-                  {reportPeriodType === 'quarterly' && `Q${currentQuarter} ${currentYear}`}
-                  {reportPeriodType === 'yearly' && `Tahun ${currentYear}`}
+                  {reportPeriodType === 'monthly' && `${months[currentMonth - 1]} ${selectedYear}`}
+                  {reportPeriodType === 'quarterly' && `Q${currentQuarter} ${selectedYear}`}
+                  {reportPeriodType === 'yearly' && `Tahun ${selectedYear}`}
                 </p>
               </CardHeader>
               <CardContent>
                 {(() => {
                   const teamReport = getSalesTeamReport(
                     reportPeriodType,
-                    currentYear,
+                    selectedYear,
                     reportPeriodType === 'monthly' ? currentMonth : undefined,
                     reportPeriodType === 'quarterly' ? currentQuarter : undefined
                   );
@@ -493,10 +524,10 @@ export function SalesDashboard() {
                                   </span>
                                 </p>
                                 <p className={`text-sm font-medium ${sales.achievementPercentage >= 100
-                                    ? 'text-green-600'
-                                    : sales.achievementPercentage >= 50
-                                      ? 'text-yellow-600'
-                                      : 'text-red-600'
+                                  ? 'text-green-600'
+                                  : sales.achievementPercentage >= 50
+                                    ? 'text-yellow-600'
+                                    : 'text-red-600'
                                   }`}>
                                   {sales.achievementPercentage.toFixed(1)}%
                                 </p>
@@ -548,8 +579,8 @@ export function SalesDashboard() {
                                             {formatCurrency(record.totalAmount)}
                                           </TableCell>
                                           <TableCell className={`text-right text-sm font-medium ${(record.marginAmount || 0) >= 0
-                                              ? 'text-green-600'
-                                              : 'text-red-600'
+                                            ? 'text-green-600'
+                                            : 'text-red-600'
                                             }`}>
                                             {formatCurrency(record.marginAmount || 0)}
                                           </TableCell>
@@ -570,6 +601,15 @@ export function SalesDashboard() {
             </Card>
           </TabsContent>
         )}
+
+
+        <TabsContent value="analytics" className="mt-4">
+          <SalesAnalytics
+            getMonthlyTrend={getMonthlyTrend}
+            getAvailableYears={getAvailableYears}
+            formatCurrency={formatCurrency}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* Forms */}
@@ -634,6 +674,6 @@ export function SalesDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 }

@@ -14,6 +14,8 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { PendingManagerRequestsDialog } from '@/components/admin/PendingManagerRequestsDialog';
 import { SalesDashboard } from '@/components/sales/SalesDashboard';
+import { ActivityAnalytics } from '@/components/activities/ActivityAnalytics';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Loader2, MapPin, Phone, Mail, Users, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -37,7 +39,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { persons, loading: personsLoading, addPerson, updatePerson, deletePerson } = usePersons();
-  const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity, refetch: refetchActivities } = useActivities();
+  const { activities, loading: activitiesLoading, addActivity, updateActivity, deleteActivity, refetch: refetchActivities, getAvailableYears, getMonthlyActivityTrend } = useActivities();
   const { profile, allProfiles, loading: profileLoading, isManager, isSuperadmin, createProfile, updateProfile, deleteProfile, refetchAll } = useProfile();
   const { settings: companySettings, updateSettings, uploadLogo, loading: companyLoading } = useCompanySettings();
   const { pendingRequests, myRequest, createRequest, approveRequest, rejectRequest } = usePendingManagerRequests();
@@ -52,6 +54,7 @@ const Index = () => {
   const [editPerson, setEditPerson] = useState<Person | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activityTypeFilter, setActivityTypeFilter] = useState<string>('all');
+  const [selectedActivityYear, setSelectedActivityYear] = useState(new Date().getFullYear());
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -119,12 +122,13 @@ const Index = () => {
       a.notes.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesType = activityTypeFilter === 'all' || a.activityType === activityTypeFilter;
+    const matchesYear = new Date(a.date).getFullYear() === selectedActivityYear;
 
     // Manager can see all, sales can see their own + presales (read-only), presales see only their own
-    if (isManager) return matchesSearch && matchesType;
-    if (profile?.division === 'sales') return matchesSearch && matchesType; // Sales can see all (presales via RLS)
-    if (profile?.division === 'presales') return matchesSearch && matchesType && a.category === 'presales';
-    return matchesSearch && matchesType;
+    if (isManager) return matchesSearch && matchesType && matchesYear;
+    if (profile?.division === 'sales') return matchesSearch && matchesType && matchesYear; // Sales can see all (presales via RLS)
+    if (profile?.division === 'presales') return matchesSearch && matchesType && matchesYear && a.category === 'presales';
+    return matchesSearch && matchesType && matchesYear;
   });
 
   // Filter persons by search
@@ -242,6 +246,19 @@ const Index = () => {
                         className="pl-9"
                       />
                     </div>
+
+                    {/* Year Selector */}
+                    <Select value={selectedActivityYear.toString()} onValueChange={(v) => setSelectedActivityYear(Number(v))}>
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Tahun" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(getAvailableYears?.() || [new Date().getFullYear()]).map(year => (
+                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
                     <Select value={activityTypeFilter} onValueChange={setActivityTypeFilter}>
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Semua Tipe" />
@@ -289,11 +306,29 @@ const Index = () => {
                   </div>
                 </div>
 
-                <ActivityList
-                  activities={filteredActivities}
-                  onDelete={handleDeleteActivity}
-                  onEdit={handleEditActivity}
-                />
+                <Tabs defaultValue="list" className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="list">Daftar Aktivitas</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="list">
+                    <ActivityList
+                      activities={filteredActivities}
+                      onDelete={handleDeleteActivity}
+                      onEdit={handleEditActivity}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="analytics">
+                    {getMonthlyActivityTrend && (
+                      <ActivityAnalytics
+                        getMonthlyActivityTrend={getMonthlyActivityTrend}
+                        selectedYear={selectedActivityYear}
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
 

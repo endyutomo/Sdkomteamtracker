@@ -415,6 +415,55 @@ export function useSales() {
     });
   }, [salesProfiles, enrichedTargets, enrichedRecords]);
 
+  // Get list of years that have data
+  const getAvailableYears = useCallback(() => {
+    const yearsFromRecords = enrichedRecords.map(r => r.closingDate.getFullYear());
+    const yearsFromTargets = enrichedTargets.map(t => t.periodYear);
+    const allYears = [...new Set([...yearsFromRecords, ...yearsFromTargets])];
+    return allYears.sort((a, b) => b - a); // Sort descending
+  }, [enrichedRecords, enrichedTargets]);
+
+  // Get monthly trend data for a specific year
+  const getMonthlyTrend = useCallback((year: number) => {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+
+    return months.map((monthName, index) => {
+      const month = index + 1;
+
+      // Get records for this month
+      const monthRecords = enrichedRecords.filter(r => {
+        const recordYear = r.closingDate.getFullYear();
+        const recordMonth = r.closingDate.getMonth() + 1;
+        return recordYear === year && recordMonth === month;
+      });
+
+      // Calculate totals
+      const totalSales = monthRecords.reduce((sum, r) => sum + r.totalAmount, 0);
+      const totalMargin = monthRecords.reduce((sum, r) => sum + (r.marginAmount || 0), 0);
+      const transactionCount = monthRecords.length;
+
+      // Get target for this month
+      const target = enrichedTargets.find(t =>
+        t.periodType === 'monthly' &&
+        t.periodYear === year &&
+        t.periodMonth === month
+      );
+
+      return {
+        month: monthName,
+        monthNumber: month,
+        sales: totalSales,
+        margin: totalMargin,
+        target: target?.targetAmount || 0,
+        transactions: transactionCount,
+        achievement: target?.targetAmount ? (totalMargin / target.targetAmount) * 100 : 0,
+      };
+    });
+  }, [enrichedRecords, enrichedTargets]);
+
   return {
     targets: enrichedTargets,
     records: enrichedRecords,
@@ -429,6 +478,8 @@ export function useSales() {
     getTargetForPeriod,
     getSalesForPeriod,
     getSalesTeamReport,
+    getAvailableYears,
+    getMonthlyTrend,
     refetch: () => Promise.all([fetchProfiles(), fetchTargets(), fetchRecords()]),
   };
 }
