@@ -325,13 +325,11 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         </Button>
       </div>
 
-      {/* Team Activity Stats - Visible Only to Managers */}
-      {isManager && (
-        <TeamActivityStats
-          activities={filteredActivities}
-          allProfiles={allProfiles}
-        />
-      )}
+      {/* Team Activity Stats - Visible To All */}
+      <TeamActivityStats
+        activities={filteredActivities}
+        allProfiles={allProfiles}
+      />
 
       {/* Search and Filter Section */}
       <Card>

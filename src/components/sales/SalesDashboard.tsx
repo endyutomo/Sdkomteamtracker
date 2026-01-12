@@ -10,6 +10,7 @@ import { Plus, Target, TrendingUp, Edit, Trash2, DollarSign, Users, ChevronDown,
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useSales } from '@/hooks/useSales';
+import { useProfile } from '@/hooks/useProfile';
 import { SalesRecordForm } from './SalesRecordForm';
 import { SalesTargetForm } from './SalesTargetForm';
 import { SalesAnalytics } from './SalesAnalytics';
@@ -47,6 +48,7 @@ export function SalesDashboard() {
     getMonthlyTrend,
     isManager,
   } = useSales();
+  const { profile } = useProfile();
 
   const [showRecordForm, setShowRecordForm] = useState(false);
   const [showTargetForm, setShowTargetForm] = useState(false);
