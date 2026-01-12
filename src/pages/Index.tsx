@@ -253,9 +253,11 @@ const Index = () => {
                         <SelectValue placeholder="Tahun" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(getAvailableYears?.() || [new Date().getFullYear()]).map(year => (
-                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                        ))}
+                        {Array.from(new Set([...(getAvailableYears?.() || []), new Date().getFullYear()]))
+                          .sort((a, b) => b - a)
+                          .map(year => (
+                            <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
 
