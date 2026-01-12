@@ -34,6 +34,7 @@ export function SalesDashboard() {
     records,
     loading,
     addTarget,
+    deleteTarget,
     addRecord,
     updateRecord,
     deleteRecord,
@@ -91,6 +92,7 @@ export function SalesDashboard() {
     productName: string;
     quantity: number;
     unitPrice: number;
+    costPrice: number;
     closingDate: Date;
     notes?: string;
   }) => {
@@ -102,6 +104,7 @@ export function SalesDashboard() {
     productName: string;
     quantity: number;
     unitPrice: number;
+    costPrice: number;
     closingDate: Date;
     notes?: string;
   }) => {
@@ -255,6 +258,7 @@ export function SalesDashboard() {
                         <TableHead>Produk</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
                         <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Margin</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -270,6 +274,16 @@ export function SalesDashboard() {
                           <TableCell className="text-right">{record.quantity}</TableCell>
                           <TableCell className="text-right font-medium">
                             {formatCurrency(record.totalAmount)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex flex-col items-end">
+                              <span className={`font-medium ${(record.marginAmount || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(record.marginAmount || 0)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({(record.marginPercentage || 0).toFixed(1)}%)
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">

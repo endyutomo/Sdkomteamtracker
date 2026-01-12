@@ -364,9 +364,12 @@ export type Database = {
       sales_records: {
         Row: {
           closing_date: string
+          cost_price: number | null
           created_at: string
           customer_name: string
           id: string
+          margin_amount: number | null
+          margin_percentage: number | null
           notes: string | null
           product_name: string
           quantity: number
@@ -377,9 +380,12 @@ export type Database = {
         }
         Insert: {
           closing_date?: string
+          cost_price?: number | null
           created_at?: string
           customer_name: string
           id?: string
+          margin_amount?: number | null
+          margin_percentage?: number | null
           notes?: string | null
           product_name: string
           quantity?: number
@@ -390,9 +396,12 @@ export type Database = {
         }
         Update: {
           closing_date?: string
+          cost_price?: number | null
           created_at?: string
           customer_name?: string
           id?: string
+          margin_amount?: number | null
+          margin_percentage?: number | null
           notes?: string | null
           product_name?: string
           quantity?: number
