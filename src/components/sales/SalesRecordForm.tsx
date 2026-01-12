@@ -20,6 +20,7 @@ interface SalesRecordFormProps {
     productName: string;
     quantity: number;
     unitPrice: number;
+    costPrice: number;
     closingDate: Date;
     notes?: string;
   }) => Promise<void>;
@@ -31,6 +32,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
+  const [costPrice, setCostPrice] = useState(0);
   const [closingDate, setClosingDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +43,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
       setProductName(editRecord.productName);
       setQuantity(editRecord.quantity);
       setUnitPrice(editRecord.unitPrice);
+      setCostPrice(editRecord.costPrice || 0);
       setClosingDate(editRecord.closingDate);
       setNotes(editRecord.notes || '');
     } else {
@@ -53,6 +56,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
     setProductName('');
     setQuantity(1);
     setUnitPrice(0);
+    setCostPrice(0);
     setClosingDate(new Date());
     setNotes('');
   };
@@ -71,6 +75,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
         productName: productName.trim(),
         quantity,
         unitPrice,
+        costPrice,
         closingDate,
         notes: notes.trim() || undefined,
       });
@@ -82,6 +87,8 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
   };
 
   const totalAmount = quantity * unitPrice;
+  const marginAmount = totalAmount - (costPrice * quantity);
+  const marginPercentage = totalAmount > 0 ? (marginAmount / totalAmount) * 100 : 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -135,7 +142,7 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="unitPrice">Harga Satuan (Rp) *</Label>
+              <Label htmlFor="unitPrice">Harga Jual (Rp) *</Label>
               <Input
                 id="unitPrice"
                 type="number"
@@ -147,10 +154,28 @@ export function SalesRecordForm({ open, onClose, onSubmit, editRecord }: SalesRe
             </div>
           </div>
 
-          <div className="p-3 bg-muted rounded-lg">
+          <div className="space-y-2">
+            <Label htmlFor="costPrice">Harga Modal (Rp)</Label>
+            <Input
+              id="costPrice"
+              type="number"
+              min="0"
+              value={costPrice}
+              onChange={(e) => setCostPrice(Number(e.target.value))}
+              placeholder="Masukkan harga modal per unit"
+            />
+          </div>
+
+          <div className="p-3 bg-muted rounded-lg space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Total Penjualan:</span>
               <span className="text-lg font-bold text-primary">{formatCurrency(totalAmount)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Margin:</span>
+              <span className={`text-lg font-bold ${marginAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(marginAmount)} ({marginPercentage.toFixed(1)}%)
+              </span>
             </div>
           </div>
 

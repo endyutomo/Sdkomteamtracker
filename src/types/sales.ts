@@ -21,7 +21,10 @@ export interface SalesRecord {
   productName: string;
   quantity: number;
   unitPrice: number;
+  costPrice: number;
   totalAmount: number;
+  marginAmount?: number;
+  marginPercentage?: number;
   userName?: string;
   closingDate: Date;
   notes?: string | null;

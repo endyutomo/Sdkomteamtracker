@@ -84,14 +84,17 @@ export function useSales() {
     }
 
     setRecords(
-      (salesData || []).map((r) => ({
+      (salesData || []).map((r: any) => ({
         id: r.id,
         userId: r.user_id,
         customerName: r.customer_name,
         productName: r.product_name,
         quantity: r.quantity,
         unitPrice: Number(r.unit_price),
+        costPrice: Number(r.cost_price || 0),
         totalAmount: Number(r.total_amount),
+        marginAmount: r.margin_amount ? Number(r.margin_amount) : undefined,
+        marginPercentage: r.margin_percentage ? Number(r.margin_percentage) : undefined,
         closingDate: new Date(r.closing_date),
         notes: r.notes,
         createdAt: new Date(r.created_at),
@@ -209,6 +212,7 @@ export function useSales() {
     productName: string;
     quantity: number;
     unitPrice: number;
+    costPrice: number;
     closingDate: Date;
     notes?: string;
   }) => {
@@ -224,6 +228,7 @@ export function useSales() {
         product_name: record.productName,
         quantity: record.quantity,
         unit_price: record.unitPrice,
+        cost_price: record.costPrice,
         total_amount: totalAmount,
         closing_date: record.closingDate.toISOString().split('T')[0],
         notes: record.notes || null,
@@ -249,6 +254,7 @@ export function useSales() {
       productName: string;
       quantity: number;
       unitPrice: number;
+      costPrice: number;
       closingDate: Date;
       notes?: string;
     }
@@ -264,6 +270,7 @@ export function useSales() {
         product_name: record.productName,
         quantity: record.quantity,
         unit_price: record.unitPrice,
+        cost_price: record.costPrice,
         total_amount: totalAmount,
         closing_date: record.closingDate.toISOString().split('T')[0],
         notes: record.notes || null,
