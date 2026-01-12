@@ -13,7 +13,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trophy, Medal, Award, TrendingUp, Users, Briefcase, Layers } from 'lucide-react';
 
 interface TeamActivityStatsProps {
     activities: DailyActivity[];
@@ -57,6 +58,64 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
 
     if (stats.length === 0) return null;
 
+    const renderTable = (filteredStats: typeof stats) => (
+        <div className="rounded-md border bg-background">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[50px] text-center">Rank</TableHead>
+                        <TableHead>Anggota Tim</TableHead>
+                        <TableHead className="text-center">Aktivitas</TableHead>
+                        <TableHead className="w-[40%]">Persentase</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredStats.map((stat, index) => (
+                        <TableRow key={stat.name}>
+                            <TableCell className="text-center font-medium">
+                                {index === 0 && <Trophy className="h-4 w-4 text-yellow-500 mx-auto" />}
+                                {index === 1 && <Medal className="h-4 w-4 text-gray-400 mx-auto" />}
+                                {index === 2 && <Award className="h-4 w-4 text-amber-600 mx-auto" />}
+                                {index > 2 && <span className="text-muted-foreground">#{index + 1}</span>}
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarFallback>{stat.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-sm">{stat.name}</span>
+                                        <Badge variant="outline" className="w-fit text-[10px] h-4 px-1">
+                                            {stat.division.toUpperCase()}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-center font-bold">
+                                {stat.count}
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                    <Progress value={stat.percentage} className="h-2" />
+                                    <span className="text-xs text-muted-foreground w-12 border rounded px-1 text-center bg-muted/50">
+                                        {stat.percentage.toFixed(1)}%
+                                    </span>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                    {filteredStats.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                Tidak ada data untuk divisi ini
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </div>
+    );
+
     return (
         <Card className="mb-8 border-primary/20 bg-primary/5">
             <CardHeader>
@@ -66,54 +125,32 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="rounded-md border bg-background">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[50px] text-center">Rank</TableHead>
-                                <TableHead>Anggota Tim</TableHead>
-                                <TableHead className="text-center">Aktivitas</TableHead>
-                                <TableHead className="w-[40%]">Persentase</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {stats.map((stat, index) => (
-                                <TableRow key={stat.name}>
-                                    <TableCell className="text-center font-medium">
-                                        {index === 0 && <Trophy className="h-4 w-4 text-yellow-500 mx-auto" />}
-                                        {index === 1 && <Medal className="h-4 w-4 text-gray-400 mx-auto" />}
-                                        {index === 2 && <Award className="h-4 w-4 text-amber-600 mx-auto" />}
-                                        {index > 2 && <span className="text-muted-foreground">#{index + 1}</span>}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>{stat.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium text-sm">{stat.name}</span>
-                                                <Badge variant="outline" className="w-fit text-[10px] h-4 px-1">
-                                                    {stat.division.toUpperCase()}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center font-bold">
-                                        {stat.count}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Progress value={stat.percentage} className="h-2" />
-                                            <span className="text-xs text-muted-foreground w-12 border rounded px-1 text-center bg-muted/50">
-                                                {stat.percentage.toFixed(1)}%
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                <Tabs defaultValue="all" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-4">
+                        <TabsTrigger value="all" className="gap-2">
+                            <Layers className="h-4 w-4" />
+                            Semua
+                        </TabsTrigger>
+                        <TabsTrigger value="sales" className="gap-2">
+                            <Briefcase className="h-4 w-4" />
+                            Sales
+                        </TabsTrigger>
+                        <TabsTrigger value="presales" className="gap-2">
+                            <Users className="h-4 w-4" />
+                            Presales
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="all">
+                        {renderTable(stats)}
+                    </TabsContent>
+                    <TabsContent value="sales">
+                        {renderTable(stats.filter(s => s.division === 'sales'))}
+                    </TabsContent>
+                    <TabsContent value="presales">
+                        {renderTable(stats.filter(s => s.division === 'presales'))}
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
     );
