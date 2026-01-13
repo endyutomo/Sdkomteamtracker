@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit, Trash2, User, Briefcase, Users, Shield } from 'lucide-react';
+import { Edit, Trash2, User, Briefcase, Users, Shield, Truck, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +25,8 @@ const divisionConfig: Record<DivisionType, { label: string; color: string; icon:
   sales: { label: 'Sales', color: 'bg-blue-100 text-blue-800', icon: Users },
   presales: { label: 'Presales', color: 'bg-green-100 text-green-800', icon: Briefcase },
   manager: { label: 'Manager', color: 'bg-purple-100 text-purple-800', icon: User },
+  backoffice: { label: 'Backoffice', color: 'bg-orange-100 text-orange-800', icon: Building },
+  logistic: { label: 'Logistik/Driver', color: 'bg-teal-100 text-teal-800', icon: Truck },
 };
 
 export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: TeamMemberListProps) {
@@ -71,6 +73,8 @@ export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: Team
     manager: profiles.filter(p => p.division === 'manager'),
     sales: profiles.filter(p => p.division === 'sales'),
     presales: profiles.filter(p => p.division === 'presales'),
+    backoffice: profiles.filter(p => p.division === 'backoffice'),
+    logistic: profiles.filter(p => p.division === 'logistic'),
   };
 
   if (profiles.length === 0) {
@@ -217,6 +221,8 @@ export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: Team
                   <SelectItem value="sales">Sales</SelectItem>
                   <SelectItem value="presales">Presales</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="backoffice">Backoffice</SelectItem>
+                  <SelectItem value="logistic">Logistik/Driver</SelectItem>
                 </SelectContent>
               </Select>
             </div>

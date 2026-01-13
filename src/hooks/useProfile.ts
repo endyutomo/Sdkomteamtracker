@@ -5,7 +5,7 @@ import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { profileSchema } from '@/lib/validations';
 
-export type DivisionType = 'sales' | 'presales' | 'manager';
+export type DivisionType = 'sales' | 'presales' | 'manager' | 'backoffice' | 'logistic';
 
 export interface Profile {
   id: string;
@@ -43,7 +43,7 @@ export function useProfile() {
 
       if (data) {
         setProfile(data as Profile);
-        setIsManager(data.division === 'manager');
+        setIsManager(data.division === 'manager' || data.division === 'backoffice');
 
         // Check if user is superadmin
         const { data: roleData } = await supabase
@@ -129,7 +129,7 @@ export function useProfile() {
         });
 
       setProfile(data as Profile);
-      setIsManager(data.division === 'manager');
+      setIsManager(data.division === 'manager' || data.division === 'backoffice');
       toast({
         title: 'Berhasil',
         description: 'Profile berhasil dibuat',
@@ -168,7 +168,7 @@ export function useProfile() {
 
       if (profile?.id === id) {
         setProfile(data as Profile);
-        setIsManager(data.division === 'manager');
+        setIsManager(data.division === 'manager' || data.division === 'backoffice');
       }
 
       if (isManager) {
