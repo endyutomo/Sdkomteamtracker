@@ -182,7 +182,7 @@ export function useChat(soundEnabled: boolean = true) {
             ...prev,
             { ...newMessage, sender_name: senderProfile?.name || 'Unknown', reads: [] },
           ]);
-          
+
           // Mark as read if not own message
           if (newMessage.sender_id !== user.id) {
             await supabase.from('message_reads').insert({
@@ -206,9 +206,9 @@ export function useChat(soundEnabled: boolean = true) {
             prev.map((msg) =>
               msg.id === newRead.message_id
                 ? {
-                    ...msg,
-                    reads: [...(msg.reads || []), { ...newRead, user_name: userProfile?.name || 'Unknown' }],
-                  }
+                  ...msg,
+                  reads: [...(msg.reads || []), { ...newRead, user_name: userProfile?.name || 'Unknown' }],
+                }
                 : msg
             )
           );
@@ -236,32 +236,32 @@ export function useChat(soundEnabled: boolean = true) {
         },
         (payload) => {
           const newMessage = payload.new as Message;
-          
+
           // Don't notify for own messages
           if (newMessage.sender_id === user.id) return;
-          
+
           // Don't notify if viewing this conversation
           if (activeConversation?.id === newMessage.conversation_id) return;
-          
+
           const senderProfile = allProfiles.find((p) => p.user_id === newMessage.sender_id);
           const senderName = senderProfile?.name || 'Seseorang';
-          
+
           // Increment unread count
           setUnreadCount((prev) => prev + 1);
-          
+
           // Play notification sound if enabled
           if (soundEnabled) {
             playChimeSound();
           }
-          
+
           // Show toast notification
           toast({
             title: `Pesan baru dari ${senderName}`,
-            description: newMessage.content.length > 50 
-              ? newMessage.content.substring(0, 50) + '...' 
+            description: newMessage.content.length > 50
+              ? newMessage.content.substring(0, 50) + '...'
               : newMessage.content,
           });
-          
+
           // Refresh conversations to update last message
           fetchConversations();
         }
@@ -343,7 +343,7 @@ export function useChat(soundEnabled: boolean = true) {
     }
   };
 
-  const createDivisionConversation = async (division: 'sales' | 'presales' | 'all', name: string) => {
+  const createDivisionConversation = async (division: 'sales' | 'presales' | 'logistic' | 'backoffice' | 'all', name: string) => {
     if (!user) return null;
 
     try {

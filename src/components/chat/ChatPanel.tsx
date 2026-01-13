@@ -46,7 +46,7 @@ export function ChatPanel() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { user } = useAuth();
   const { profile, allProfiles, isSuperadmin } = useProfile();
   const { settings: chatSettings, toggleSound } = useChatSettings();
@@ -86,17 +86,17 @@ export function ChatPanel() {
   // Get read status for a message
   const getReadStatus = (msg: Message) => {
     if (msg.sender_id !== user?.id) return null;
-    
+
     const reads = msg.reads || [];
     const readersExcludingSender = reads.filter((r) => r.user_id !== msg.sender_id);
-    
+
     if (!activeConversation) return { allRead: false, readCount: 0, readers: [], notReaders: [] };
-    
+
     const participantsCount = getConversationParticipantsCount(activeConversation);
     const expectedReaders = participantsCount - 1; // Exclude sender
-    
+
     const allRead = expectedReaders > 0 && readersExcludingSender.length >= expectedReaders;
-    
+
     // Get who hasn't read
     let notReaders: string[] = [];
     if (activeConversation.type === 'direct') {
@@ -105,15 +105,15 @@ export function ChatPanel() {
         notReaders = [otherParticipant.name];
       }
     } else if (activeConversation.type === 'division') {
-      const relevantProfiles = activeConversation.division === 'all' 
-        ? chatAllProfiles 
+      const relevantProfiles = activeConversation.division === 'all'
+        ? chatAllProfiles
         : chatAllProfiles.filter((p) => p.division === activeConversation.division || p.division === 'manager');
-      
+
       notReaders = relevantProfiles
         .filter((p) => p.user_id !== user?.id && !readersExcludingSender.some((r) => r.user_id === p.user_id))
         .map((p) => p.name);
     }
-    
+
     return {
       allRead,
       readCount: readersExcludingSender.length,
@@ -156,14 +156,14 @@ export function ChatPanel() {
   // Upload image to Supabase Storage
   const uploadImage = async (file: File): Promise<string | null> => {
     if (!user) return null;
-    
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-    
+
     const { data, error } = await supabase.storage
       .from('chat-images')
       .upload(fileName, file);
-    
+
     if (error) {
       console.error('Upload error:', error);
       toast({
@@ -173,11 +173,11 @@ export function ChatPanel() {
       });
       return null;
     }
-    
+
     const { data: publicUrl } = supabase.storage
       .from('chat-images')
       .getPublicUrl(data.path);
-    
+
     return publicUrl.publicUrl;
   };
 
@@ -193,16 +193,16 @@ export function ChatPanel() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeConversation || (!newMessage.trim() && !selectedImageFile)) return;
-    
+
     setUploadingImage(true);
-    
+
     try {
       let imageUrl: string | undefined;
-      
+
       if (selectedImageFile) {
         imageUrl = (await uploadImage(selectedImageFile)) || undefined;
       }
-      
+
       await sendMessage(activeConversation.id, newMessage, imageUrl);
       setNewMessage('');
       cancelImagePreview();
@@ -222,8 +222,11 @@ export function ChatPanel() {
     setShowNewChat(false);
   };
 
-  const handleStartDivisionChat = async (division: 'sales' | 'presales' | 'all') => {
-    const name = division === 'all' ? 'Semua Tim' : division === 'sales' ? 'Tim Sales' : 'Tim Presales';
+  const handleStartDivisionChat = async (division: 'sales' | 'presales' | 'logistic' | 'backoffice' | 'all') => {
+    const name = division === 'all' ? 'Semua Tim' :
+      division === 'sales' ? 'Tim Sales' :
+        division === 'presales' ? 'Tim Presales' :
+          division === 'logistic' ? 'Tim Logistik' : 'Tim Backoffice';
     const conv = await createDivisionConversation(division, name);
     if (conv) {
       const fullConv = conversations.find((c) => c.id === conv.id);
@@ -258,6 +261,8 @@ export function ChatPanel() {
     if (filterType === 'division') return conv.type === 'division';
     if (filterType === 'sales') return conv.type === 'division' && conv.division === 'sales';
     if (filterType === 'presales') return conv.type === 'division' && conv.division === 'presales';
+    if (filterType === 'logistic') return conv.type === 'division' && conv.division === 'logistic';
+    if (filterType === 'backoffice') return conv.type === 'division' && conv.division === 'backoffice';
     if (filterType === 'all-team') return conv.type === 'division' && conv.division === 'all';
     return true;
   });
@@ -375,6 +380,22 @@ export function ChatPanel() {
                   <Building2 className="h-4 w-4" />
                   Tim Presales
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  onClick={() => handleStartDivisionChat('logistic')}
+                >
+                  <Building2 className="h-4 w-4" />
+                  Tim Logistik
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  onClick={() => handleStartDivisionChat('backoffice')}
+                >
+                  <Building2 className="h-4 w-4" />
+                  Tim Backoffice
+                </Button>
               </div>
             </div>
 
@@ -399,7 +420,11 @@ export function ChatPanel() {
                       <Shield className="h-3 w-3 text-amber-500" />
                     )}
                     <Badge variant="secondary" className="ml-auto text-xs">
-                      {otherUser.division === 'manager' ? 'Manager' : otherUser.division === 'sales' ? 'Sales' : 'Presales'}
+                      {otherUser.division === 'manager' ? 'Manager' :
+                        otherUser.division === 'sales' ? 'Sales' :
+                          otherUser.division === 'presales' ? 'Presales' :
+                            otherUser.division === 'backoffice' ? 'Backoffice' :
+                              otherUser.division === 'logistic' ? 'Logistik' : otherUser.division}
                     </Badge>
                   </Button>
                 ))}
@@ -437,17 +462,16 @@ export function ChatPanel() {
                       )}
                     </div>
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm transition-all ${
-                        isOwnMessage
-                          ? 'bg-primary text-primary-foreground rounded-br-md'
-                          : 'bg-muted rounded-bl-md'
-                      }`}
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm transition-all ${isOwnMessage
+                        ? 'bg-primary text-primary-foreground rounded-br-md'
+                        : 'bg-muted rounded-bl-md'
+                        }`}
                     >
                       {msg.image_url && (
                         <a href={msg.image_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
-                          <img 
-                            src={msg.image_url} 
-                            alt="Chat image" 
+                          <img
+                            src={msg.image_url}
+                            alt="Chat image"
                             className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                           />
                         </a>
@@ -533,8 +557,8 @@ export function ChatPanel() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="start" className="w-auto p-0 border-none shadow-xl">
-                  <Picker 
-                    data={data} 
+                  <Picker
+                    data={data}
                     onEmojiSelect={handleEmojiSelect}
                     theme="auto"
                     locale="id"
@@ -576,9 +600,9 @@ export function ChatPanel() {
                 }}
                 disabled={uploadingImage}
               />
-              <Button 
-                type="submit" 
-                size="icon" 
+              <Button
+                type="submit"
+                size="icon"
                 disabled={(!newMessage.trim() && !selectedImageFile) || uploadingImage}
                 className="rounded-full shrink-0 transition-transform hover:scale-105 active:scale-95"
               >
@@ -628,6 +652,18 @@ export function ChatPanel() {
                     Tim Presales
                   </div>
                 </SelectItem>
+                <SelectItem value="logistic">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Tim Logistik
+                  </div>
+                </SelectItem>
+                <SelectItem value="backoffice">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Tim Backoffice
+                  </div>
+                </SelectItem>
                 <SelectItem value="all-team">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
@@ -637,7 +673,7 @@ export function ChatPanel() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <ScrollArea className="flex-1 p-4">
             {loading ? (
               <div className="text-center text-muted-foreground py-8">Memuat...</div>
