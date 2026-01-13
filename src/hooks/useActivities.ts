@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { DailyActivity, ActivityType, ActivityCategory, Collaboration, CollaborationPerson } from '@/types';
 import { useAuth } from './useAuth';
@@ -86,7 +87,7 @@ export function useActivities() {
       const insertData = {
         user_id: user.id,
         date: activity.date instanceof Date
-          ? activity.date.toISOString().split('T')[0]
+          ? format(activity.date, 'yyyy-MM-dd')
           : String(activity.date),
         category: activity.category,
         person_id: activity.personId || null,
@@ -205,7 +206,7 @@ export function useActivities() {
 
       if (updates.date !== undefined) {
         updateData.date = updates.date instanceof Date
-          ? updates.date.toISOString().split('T')[0]
+          ? format(updates.date, 'yyyy-MM-dd')
           : updates.date;
       }
       if (updates.category !== undefined) updateData.category = updates.category;
