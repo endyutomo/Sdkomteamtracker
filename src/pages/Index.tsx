@@ -181,6 +181,8 @@ const Index = () => {
         companyName={companySettings?.name || 'SalesTrack'}
         onOpenCompanySettings={() => setShowCompanySettings(true)}
         onOpenSettings={() => setShowSettings(true)}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
       {/* Superadmin pending requests button */}

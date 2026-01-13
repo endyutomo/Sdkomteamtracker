@@ -1,4 +1,4 @@
-import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet, DollarSign, Truck } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet, DollarSign, Truck, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,8 @@ interface HeaderProps {
   companyName?: string;
   onOpenCompanySettings?: () => void;
   onOpenSettings?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function Header({
@@ -26,7 +28,9 @@ export function Header({
   companyLogo,
   companyName = 'SalesTrack',
   onOpenCompanySettings,
-  onOpenSettings
+  onOpenSettings,
+  onRefresh,
+  isRefreshing
 }: HeaderProps) {
   const { signOut, user } = useAuth();
 
@@ -114,6 +118,18 @@ export function Header({
                       userDivision === 'logistic' ? 'Logistik' : 'Presales'}
                 {isManager && <span className="text-xs">(Admin)</span>}
               </Badge>
+            )}
+            {onRefresh && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title="Refresh Data"
+                className={isRefreshing ? "animate-spin" : ""}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             )}
             <Button onClick={onAddActivity} className="gap-2">
               <Plus className="h-4 w-4" />

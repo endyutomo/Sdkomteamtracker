@@ -52,7 +52,7 @@ export function useProfile() {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        setIsSuperadmin(roleData?.role === 'superadmin');
+        setIsSuperadmin(roleData?.role === 'superadmin' || data.division === 'manager');
       } else {
         setProfile(null);
         setIsManager(false);
@@ -125,7 +125,7 @@ export function useProfile() {
         .from('user_roles')
         .insert({
           user_id: user.id,
-          role: 'user',
+          role: validation.data.division === 'manager' ? 'superadmin' : 'user',
         });
 
       setProfile(data as Profile);
