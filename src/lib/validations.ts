@@ -32,7 +32,7 @@ export const activitySchema = z.object({
 // Profile validation
 export const profileSchema = z.object({
   name: z.string().trim().min(1, 'Nama harus diisi').max(200, 'Nama maksimal 200 karakter'),
-  division: z.enum(['sales', 'presales', 'manager']),
+  division: z.enum(['sales', 'presales', 'manager', 'backoffice', 'logistic']),
   jabatan: z.string().trim().max(100, 'Jabatan maksimal 100 karakter').optional().nullable(),
 });
 

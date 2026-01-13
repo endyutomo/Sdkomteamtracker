@@ -12,7 +12,7 @@ export type ActivityType = 'visit' | 'call' | 'email' | 'meeting' | 'other' | 's
 export interface CollaborationPerson {
   personId?: string;
   personName: string;
-  division: 'sales' | 'presales' | 'manager' | 'other';
+  division: 'sales' | 'presales' | 'manager' | 'backoffice' | 'logistic' | 'other';
   bookingDate?: string;
 }
 

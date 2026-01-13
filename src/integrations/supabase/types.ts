@@ -481,6 +481,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_backoffice: { Args: { _user_id: string }; Returns: boolean }
+      is_logistic: { Args: { _user_id: string }; Returns: boolean }
       is_manager: { Args: { _user_id: string }; Returns: boolean }
       is_presales: { Args: { _user_id: string }; Returns: boolean }
       is_sales: { Args: { _user_id: string }; Returns: boolean }

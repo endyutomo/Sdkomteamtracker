@@ -84,6 +84,8 @@ export function ProfileForm({
                 <SelectItem value="sales">Sales</SelectItem>
                 <SelectItem value="presales">Presales</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="backoffice">Backoffice</SelectItem>
+                <SelectItem value="logistic">Logistik/Driver</SelectItem>
               </SelectContent>
             </Select>
           </div>
