@@ -493,14 +493,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  disabled={!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))}
+                  disabled={!currentProfile || (currentProfile.division !== 'manager' && currentProfile.division !== 'presales' && !isUserSuperadmin(currentProfile.user_id))}
                   className={cn(
                     'w-full justify-start text-left font-normal',
-                    (!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))) && 'bg-muted cursor-not-allowed',
+                    (!currentProfile || (currentProfile.division !== 'manager' && currentProfile.division !== 'presales' && !isUserSuperadmin(currentProfile.user_id))) && 'bg-muted cursor-not-allowed',
                     !date && 'text-muted-foreground'
                   )}
                 >
-                  {(!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))) ? (
+                  {(!currentProfile || (currentProfile.division !== 'manager' && currentProfile.division !== 'presales' && !isUserSuperadmin(currentProfile.user_id))) ? (
                     <Lock className="mr-2 h-4 w-4 text-muted-foreground" />
                   ) : (
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -517,8 +517,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                 />
               </PopoverContent>
             </Popover>
-            {(!currentProfile || (currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id))) && (
-              <p className="text-[10px] text-muted-foreground">Tanggal terkunci. Hanya Manager yang dapat mengubah tanggal.</p>
+            {(!currentProfile || (currentProfile.division !== 'manager' && currentProfile.division !== 'presales' && !isUserSuperadmin(currentProfile.user_id))) && (
+              <p className="text-[10px] text-muted-foreground">Tanggal terkunci. Hanya Manager dan Presales yang dapat mengubah tanggal.</p>
             )}
           </div>
 
