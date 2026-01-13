@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { DailyActivity, ActivityType, ActivityCategory, Collaboration, CollaborationPerson } from '@/types';
 import { useAuth } from './useAuth';
@@ -48,7 +48,7 @@ export function useActivities() {
       const mapped: DailyActivity[] = (data || []).map((a) => ({
         id: a.id,
         userId: a.user_id,
-        date: new Date(a.date),
+        date: typeof a.date === 'string' ? parseISO(a.date) : new Date(a.date),
         category: a.category as ActivityCategory,
         personId: a.person_id || '',
         personName: a.person_name,
@@ -118,7 +118,7 @@ export function useActivities() {
       const newActivity: DailyActivity = {
         id: data.id,
         userId: data.user_id,
-        date: new Date(data.date),
+        date: typeof data.date === 'string' ? parseISO(data.date) : new Date(data.date),
         category: data.category as ActivityCategory,
         personId: data.person_id || '',
         personName: data.person_name,
@@ -238,6 +238,7 @@ export function useActivities() {
       setActivities((prev) =>
         prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
       );
+      await fetchActivities();
       toast.success('Aktivitas berhasil diperbarui');
     } catch (error) {
       console.error('Error updating activity:', error);
@@ -252,6 +253,7 @@ export function useActivities() {
       if (error) throw error;
 
       setActivities((prev) => prev.filter((a) => a.id !== id));
+      await fetchActivities();
       toast.success('Aktivitas berhasil dihapus');
     } catch (error) {
       console.error('Error deleting activity:', error);

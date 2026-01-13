@@ -113,6 +113,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     user_id: p.user_id
   }));
 
+  // Create a combined list of all profiles for managers/superadmins
+  const allAvailableOptions = allProfiles.map(p => ({
+    id: p.id,
+    name: p.name,
+    division: p.division,
+    user_id: p.user_id
+  }));
+
   // Get profiles by division for selection - include managers, backoffice, and superadmins
   const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager' || p.division === 'backoffice' || p.division === 'logistic' || superadminIds.includes(p.user_id));
   const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager' || p.division === 'backoffice' || p.division === 'logistic' || superadminIds.includes(p.user_id));
@@ -130,7 +138,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     ? presalesProfiles.map(p => ({ id: p.id, name: p.name, division: p.division, user_id: p.user_id }))
     : presalesPersons.map(p => ({ id: p.id, name: p.name, division: p.role, user_id: '' }));
 
-  const availableOptions = category === 'sales' ? availableSalesOptions : availablePresalesOptions;
+  const availableOptions = (currentProfile?.division === 'manager' || (currentProfile && isUserSuperadmin(currentProfile.user_id)))
+    ? allAvailableOptions
+    : (category === 'sales' ? availableSalesOptions : availablePresalesOptions);
 
   // Get booked collaborators for the selected date (excluding current activity if editing)
   const getBookedCollaboratorsForDate = (selectedDate: Date): Set<string> => {
@@ -421,36 +431,7 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
           {!isAttendanceMode ? (
             // NORMAL ACTIVITY FORM FIELDS
             <>
-              {/* Category */}
-              {!editActivity && (
-                <div className="space-y-2">
-                  <Label>Kategori Aktivitas</Label>
-                  {(currentProfile?.division === 'manager' || (currentProfile && isUserSuperadmin(currentProfile.user_id))) ? (
-                    <Select value={category} onValueChange={(v) => {
-                      setCategory(v as ActivityCategory);
-                      setPersonId('');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sales">Aktivitas Sales</SelectItem>
-                        <SelectItem value="presales">Aktivitas Presales</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={category === 'sales' ? 'Aktivitas Sales' : 'Aktivitas Presales'}
-                        disabled
-                        className="bg-muted cursor-not-allowed"
-                      />
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
+              {/* Category Hapus dari UI sesuai permintaan */}            </>
           ) : (
             // ATTENDANCE MODE FIELDS - SIMPLIFIED
             <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-4">
@@ -522,12 +503,17 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             )}
           </div>
 
-          {/* Person - Shared but label dynamic */}
+          {/* Person - Shared but label consolidated */}
           <div className="space-y-2">
-            <Label>{isAttendanceMode ? 'Nama Anggota Tim' : (category === 'sales' ? 'Sales Person' : 'Presales Person')}</Label>
-            {/* Show dropdown only for managers/superadmins, otherwise show read-only */}
+            <Label>Identitas Pelapor (Nama & Divisi)</Label>            {/* Show dropdown only for managers/superadmins, otherwise show read-only */}
             {(currentProfile?.division === 'manager' || (currentProfile && isUserSuperadmin(currentProfile.user_id))) ? (
-              <Select value={personId} onValueChange={setPersonId}>
+              <Select value={personId} onValueChange={(val) => {
+                setPersonId(val);
+                const selected = allAvailableOptions.find(o => o.id === val);
+                if (selected) {
+                  setCategory(selected.division === 'presales' ? 'presales' : 'sales');
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih anggota tim" />
                 </SelectTrigger>
@@ -539,11 +525,16 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                   ) : (
                     availableOptions.map((option) => (
                       <SelectItem key={option.id} value={option.id}>
-                        <div className="flex items-center gap-2">
-                          {option.name}
-                          {option.user_id && isUserSuperadmin(option.user_id) && (
-                            <Shield className="h-3 w-3 text-amber-500" />
-                          )}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            {option.name}
+                            {option.user_id && isUserSuperadmin(option.user_id) && (
+                              <Shield className="h-3 w-3 text-amber-500" />
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-[10px] ml-2 opacity-70">
+                            {option.division === 'sales' ? 'Sales' : option.division === 'presales' ? 'Presales' : option.division === 'backoffice' ? 'Backoffice' : option.division === 'logistic' ? 'Logistik' : option.division}
+                          </Badge>
                         </div>
                       </SelectItem>
                     ))
