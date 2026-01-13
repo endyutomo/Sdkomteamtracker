@@ -140,7 +140,18 @@ export function SettingsDialog({ open, onClose, profile, onUpdateProfile }: Sett
             </div>
             <div className="space-y-2">
               <Label>Divisi</Label>
-              <Input value={profile?.division || ''} disabled className="bg-muted capitalize" />
+              <Input 
+                value={
+                  profile?.division === 'sales' ? 'Sales' :
+                  profile?.division === 'presales' ? 'Presales' :
+                  profile?.division === 'manager' ? 'Manager' :
+                  profile?.division === 'backoffice' ? 'Backoffice' :
+                  profile?.division === 'logistic' ? 'Logistik/Driver' :
+                  profile?.division || ''
+                } 
+                disabled 
+                className="bg-muted" 
+              />
             </div>
             <Button onClick={handleUpdateProfile} className="w-full">
               Simpan Profile

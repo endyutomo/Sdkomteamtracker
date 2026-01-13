@@ -40,7 +40,11 @@ const months = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-export function SalesDashboard() {
+interface SalesDashboardProps {
+  isViewOnly?: boolean;
+}
+
+export function SalesDashboard({ isViewOnly = false }: SalesDashboardProps) {
   const {
     targets,
     records,
@@ -268,17 +272,19 @@ export function SalesDashboard() {
         </Card>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 flex-wrap">
-        <Button onClick={() => setShowRecordForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Tambah Penjualan
-        </Button>
-        <Button variant="outline" onClick={() => setShowTargetForm(true)}>
-          <Target className="h-4 w-4 mr-2" />
-          Set Target
-        </Button>
-      </div>
+      {/* Action Buttons - Hidden for view only */}
+      {!isViewOnly && (
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setShowRecordForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tambah Penjualan
+          </Button>
+          <Button variant="outline" onClick={() => setShowTargetForm(true)}>
+            <Target className="h-4 w-4 mr-2" />
+            Set Target
+          </Button>
+        </div>
+      )}
 
       {/* Tabs for Records and Targets */}
       <Tabs defaultValue="records" className="w-full">
@@ -311,7 +317,7 @@ export function SalesDashboard() {
                         <TableHead className="text-right">Qty</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead className="text-right">Margin</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
+                        {!isViewOnly && <TableHead className="text-right">Aksi</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -337,27 +343,29 @@ export function SalesDashboard() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setEditingRecord(record);
-                                  setShowRecordForm(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteConfirm(record.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {!isViewOnly && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setEditingRecord(record);
+                                    setShowRecordForm(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteConfirm(record.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -389,7 +397,7 @@ export function SalesDashboard() {
                         <TableHead>Detail</TableHead>
                         <TableHead className="text-right">Target</TableHead>
                         <TableHead className="text-right">Realisasi</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
+                        {!isViewOnly && <TableHead className="text-right">Aksi</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -419,27 +427,29 @@ export function SalesDashboard() {
                           <TableCell className="text-right font-medium text-primary">
                             {formatCurrency(target.achievedAmount || 0)}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setEditingTarget(target);
-                                  setShowTargetForm(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteTargetConfirm(target.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {!isViewOnly && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setEditingTarget(target);
+                                    setShowTargetForm(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteTargetConfirm(target.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>

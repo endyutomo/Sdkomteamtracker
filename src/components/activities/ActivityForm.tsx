@@ -109,13 +109,13 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const allCollaborationOptions = allProfiles.map(p => ({
     id: p.id,
     name: p.name,
-    division: p.division as 'sales' | 'presales' | 'manager',
+    division: p.division as 'sales' | 'presales' | 'manager' | 'backoffice' | 'logistic',
     user_id: p.user_id
   }));
 
-  // Get profiles by division for selection - include managers and superadmins
-  const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager' || superadminIds.includes(p.user_id));
-  const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager' || superadminIds.includes(p.user_id));
+  // Get profiles by division for selection - include managers, backoffice, and superadmins
+  const salesProfiles = allProfiles.filter(p => p.division === 'sales' || p.division === 'manager' || p.division === 'backoffice' || p.division === 'logistic' || superadminIds.includes(p.user_id));
+  const presalesProfiles = allProfiles.filter(p => p.division === 'presales' || p.division === 'manager' || p.division === 'backoffice' || p.division === 'logistic' || superadminIds.includes(p.user_id));
 
   // Fall back to persons if no profiles available
   const salesPersons = persons.filter(p => p.role === 'sales');
@@ -176,8 +176,12 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       } else if (currentProfile.division === 'presales') {
         setCategory('presales');
         setPersonId(currentProfile.id);
-      } else if (currentProfile.division === 'manager') {
-        // Manager can choose, default to sales category
+      } else if (currentProfile.division === 'manager' || currentProfile.division === 'backoffice') {
+        // Manager and Backoffice can choose, default to sales category
+        setCategory('sales');
+        setPersonId(currentProfile.id);
+      } else if (currentProfile.division === 'logistic') {
+        // Logistic can create activities too
         setCategory('sales');
         setPersonId(currentProfile.id);
       }
@@ -730,7 +734,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                                   {option.name}
                                   <span className="text-xs text-muted-foreground">
                                     ({option.division === 'manager' ? 'Manager' :
-                                      option.division === 'sales' ? 'Sales' : 'Presales'})
+                                      option.division === 'sales' ? 'Sales' : 
+                                      option.division === 'backoffice' ? 'Backoffice' :
+                                      option.division === 'logistic' ? 'Driver' : 'Presales'})
                                   </span>
                                   {option.user_id && isUserSuperadmin(option.user_id) && (
                                     <Shield className="h-3 w-3 text-amber-500" />

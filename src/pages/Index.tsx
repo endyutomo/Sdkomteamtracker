@@ -124,10 +124,11 @@ const Index = () => {
     const matchesType = activityTypeFilter === 'all' || a.activityType === activityTypeFilter;
     const matchesYear = new Date(a.date).getFullYear() === selectedActivityYear;
 
-    // Manager can see all, sales can see their own + presales (read-only), presales see only their own
-    if (isManager) return matchesSearch && matchesType && matchesYear;
+    // Manager and backoffice can see all, sales can see their own + presales (read-only), presales see only their own
+    if (isManager || profile?.division === 'backoffice') return matchesSearch && matchesType && matchesYear;
     if (profile?.division === 'sales') return matchesSearch && matchesType && matchesYear; // Sales can see all (presales via RLS)
     if (profile?.division === 'presales') return matchesSearch && matchesType && matchesYear && a.category === 'presales';
+    if (profile?.division === 'logistic') return matchesSearch && matchesType && matchesYear; // Logistic can see all via RLS
     return matchesSearch && matchesType && matchesYear;
   });
 
@@ -332,13 +333,15 @@ const Index = () => {
               </div>
             )}
 
-            {activeTab === 'sales' && (profile?.division === 'sales' || isManager) && (
+            {activeTab === 'sales' && (profile?.division === 'sales' || profile?.division === 'backoffice' || isManager) && (
               <div className="space-y-6 animate-fade-in">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">Penjualan & Target</h2>
-                  <p className="text-muted-foreground">Kelola penjualan dan target Anda</p>
+                  <p className="text-muted-foreground">
+                    {profile?.division === 'backoffice' ? 'Monitor penjualan tim' : 'Kelola penjualan dan target Anda'}
+                  </p>
                 </div>
-                <SalesDashboard />
+                <SalesDashboard isViewOnly={profile?.division === 'backoffice'} />
               </div>
             )}
 

@@ -37,8 +37,8 @@ export function Header({
     { id: 'persons', label: 'Tim', icon: Users },
   ];
 
-  // Add sales tab for sales division users and managers
-  const tabs = (userDivision === 'sales' || isManager)
+  // Add sales tab for sales division users, backoffice, and managers
+  const tabs = (userDivision === 'sales' || userDivision === 'backoffice' || isManager)
     ? [...baseTabs.slice(0, 2), { id: 'sales', label: 'Penjualan', icon: DollarSign }, ...baseTabs.slice(2)]
     : baseTabs;
 
@@ -97,7 +97,10 @@ export function Header({
             {userDivision && (
               <Badge variant="outline" className="hidden sm:flex items-center gap-1">
                 <User className="h-3 w-3" />
-                {userDivision === 'manager' ? 'Manager' : userDivision === 'sales' ? 'Sales' : 'Presales'}
+                {userDivision === 'manager' ? 'Manager' : 
+                 userDivision === 'sales' ? 'Sales' : 
+                 userDivision === 'backoffice' ? 'Backoffice' :
+                 userDivision === 'logistic' ? 'Logistik' : 'Presales'}
                 {isManager && <span className="text-xs">(Admin)</span>}
               </Badge>
             )}
