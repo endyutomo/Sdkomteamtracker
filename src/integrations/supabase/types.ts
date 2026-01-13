@@ -490,7 +490,16 @@ export type Database = {
     }
     Enums: {
       activity_category: "sales" | "presales"
-      activity_type: "visit" | "call" | "email" | "meeting" | "other"
+      activity_type:
+        | "visit"
+        | "call"
+        | "email"
+        | "meeting"
+        | "other"
+        | "sick"
+        | "permission"
+        | "time_off"
+        | "wfh"
       app_role: "admin" | "user" | "superadmin"
       division_type:
         | "sales"
@@ -627,7 +636,17 @@ export const Constants = {
   public: {
     Enums: {
       activity_category: ["sales", "presales"],
-      activity_type: ["visit", "call", "email", "meeting", "other"],
+      activity_type: [
+        "visit",
+        "call",
+        "email",
+        "meeting",
+        "other",
+        "sick",
+        "permission",
+        "time_off",
+        "wfh",
+      ],
       app_role: ["admin", "user", "superadmin"],
       division_type: ["sales", "presales", "manager", "backoffice", "logistic"],
       person_role: ["sales", "presales", "other"],

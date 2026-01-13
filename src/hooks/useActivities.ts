@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DailyActivity, ActivityType, ActivityCategory, Collaboration, CollaborationPerson } from '@/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import type { TablesInsert, Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/types';
 
 // Helper function to parse collaboration data from JSON
 const parseCollaboration = (data: Json | null): Collaboration | undefined => {
@@ -16,7 +16,10 @@ const parseCollaboration = (data: Json | null): Collaboration | undefined => {
     personId: obj.personId as string | undefined,
     personName: (obj.personName as string) || '',
     collaborators: Array.isArray(obj.collaborators)
-      ? (obj.collaborators as CollaborationPerson[])
+      ? (obj.collaborators as CollaborationPerson[]).map(c => ({
+          ...c,
+          division: c.division || 'other'
+        }))
       : undefined,
   };
 };
@@ -79,7 +82,8 @@ export function useActivities() {
     if (!user) return;
 
     try {
-      const insertData: TablesInsert<'activities'> = {
+      // Cast activity_type as any to handle extended enum values not yet in auto-generated types
+      const insertData = {
         user_id: user.id,
         date: activity.date instanceof Date
           ? activity.date.toISOString().split('T')[0]
@@ -87,7 +91,7 @@ export function useActivities() {
         category: activity.category,
         person_id: activity.personId || null,
         person_name: activity.personName,
-        activity_type: activity.activityType,
+        activity_type: activity.activityType as any,
         customer_name: activity.customerName,
         project: activity.project || null,
         opportunity: activity.opportunity || null,
