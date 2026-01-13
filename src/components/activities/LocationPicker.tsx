@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,18 +16,89 @@ interface LocationPickerProps {
   value?: LocationData;
   onChange: (location: LocationData | undefined) => void;
   required?: boolean;
+  autoFetch?: boolean; // Automatically fetch GPS location when component mounts
 }
 
-export function LocationPicker({ value, onChange, required = false }: LocationPickerProps) {
+export function LocationPicker({ value, onChange, required = false, autoFetch = true }: LocationPickerProps) {
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualAddress, setManualAddress] = useState('');
+  const [autoFetchAttempted, setAutoFetchAttempted] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{
     display_name: string;
     lat: string;
     lon: string;
   }>>([]);
+
+  // Auto-fetch GPS location when component mounts
+  useEffect(() => {
+    if (autoFetch && !value && !autoFetchAttempted && navigator.geolocation) {
+      setAutoFetchAttempted(true);
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        getCurrentLocationSilent();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoFetch, value, autoFetchAttempted]);
+
+  // Silent version of getCurrentLocation for auto-fetch (no error toast)
+  const getCurrentLocationSilent = () => {
+    if (!navigator.geolocation) return;
+
+    setLoading(true);
+    setError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            {
+              headers: {
+                'Accept-Language': 'id',
+              },
+            }
+          );
+
+          const data = await response.json();
+          const locationName = data.display_name || `${latitude}, ${longitude}`;
+
+          onChange({
+            latitude,
+            longitude,
+            locationName,
+          });
+
+          toast.success('Lokasi GPS berhasil diambil otomatis');
+        } catch {
+          onChange({
+            latitude,
+            longitude,
+            locationName: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+          });
+          toast.success('Lokasi GPS berhasil diambil otomatis');
+        }
+
+        setLoading(false);
+      },
+      (err) => {
+        setLoading(false);
+        // Silent fail for auto-fetch - user can manually retry
+        if (err.code === err.PERMISSION_DENIED) {
+          setError('Aktifkan izin lokasi untuk mengambil GPS otomatis');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -42,7 +113,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        
+
         try {
           // Use reverse geocoding to get location name
           const response = await fetch(
@@ -53,16 +124,16 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
               },
             }
           );
-          
+
           const data = await response.json();
           const locationName = data.display_name || `${latitude}, ${longitude}`;
-          
+
           onChange({
             latitude,
             longitude,
             locationName,
           });
-          
+
           toast.success('Lokasi berhasil diambil');
         } catch {
           // If geocoding fails, just use coordinates
@@ -73,13 +144,13 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
           });
           toast.success('Lokasi berhasil diambil (tanpa nama alamat)');
         }
-        
+
         setLoading(false);
       },
       (err) => {
         setLoading(false);
         let errorMessage = 'Gagal mengambil lokasi';
-        
+
         switch (err.code) {
           case err.PERMISSION_DENIED:
             errorMessage = 'Akses lokasi ditolak. Izinkan akses lokasi di browser Anda.';
@@ -91,7 +162,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
             errorMessage = 'Waktu pengambilan lokasi habis';
             break;
         }
-        
+
         setError(errorMessage);
         toast.error(errorMessage);
       },
@@ -122,9 +193,9 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
           },
         }
       );
-      
+
       const data = await response.json();
-      
+
       if (data.length === 0) {
         setError('Alamat tidak ditemukan. Coba kata kunci lain.');
         toast.error('Alamat tidak ditemukan');
@@ -135,7 +206,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
       setError('Gagal mencari alamat. Coba lagi.');
       toast.error('Gagal mencari alamat');
     }
-    
+
     setSearchLoading(false);
   };
 
@@ -186,7 +257,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
               Cari Alamat
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="gps" className="space-y-2 mt-3">
             <Button
               type="button"
@@ -211,7 +282,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
               Pastikan GPS aktif untuk akurasi lokasi
             </p>
           </TabsContent>
-          
+
           <TabsContent value="manual" className="space-y-3 mt-3">
             <div className="flex gap-2">
               <Input
@@ -240,7 +311,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
                 )}
               </Button>
             </div>
-            
+
             {searchResults.length > 0 && (
               <div className="space-y-1 max-h-48 overflow-y-auto rounded-lg border border-border">
                 {searchResults.map((result, index) => (
@@ -260,12 +331,12 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
                 ))}
               </div>
             )}
-            
+
             <p className="text-xs text-muted-foreground">
               Ketik alamat lengkap atau nama tempat, lalu tekan cari
             </p>
           </TabsContent>
-          
+
           {error && (
             <p className="text-xs text-destructive flex items-center gap-1 mt-2">
               <XCircle className="h-3 w-3" />
@@ -287,7 +358,7 @@ export function LocationPicker({ value, onChange, required = false }: LocationPi
               </p>
             </div>
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               type="button"

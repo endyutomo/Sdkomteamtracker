@@ -7,7 +7,7 @@ export interface Person {
   createdAt: Date;
 }
 
-export type ActivityType = 'visit' | 'call' | 'email' | 'meeting' | 'other' | 'sick' | 'permission' | 'time_off' | 'wfh';
+export type ActivityType = 'visit' | 'call' | 'email' | 'meeting' | 'other' | 'sick' | 'permission' | 'time_off' | 'wfh' | 'closing';
 
 export interface CollaborationPerson {
   personId?: string;

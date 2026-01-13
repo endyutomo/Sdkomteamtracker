@@ -53,7 +53,7 @@ export function useNotifications() {
 
     try {
       const now = new Date().toISOString();
-      
+
       // Find activities with reminders that are due
       const { data: activities, error } = await supabase
         .from('activities')
@@ -81,8 +81,10 @@ export function useNotifications() {
               call: 'Telepon',
               email: 'Email',
               meeting: 'Meeting',
-              other: 'Lainnya'
+              other: 'Lainnya',
+              closing: 'Closing'
             };
+
 
             await supabase.from('notifications').insert({
               user_id: user.id,
@@ -111,7 +113,7 @@ export function useNotifications() {
             });
           }
         }
-        
+
         // Refresh notifications
         fetchNotifications();
       }
@@ -136,7 +138,7 @@ export function useNotifications() {
 
       if (error) throw error;
 
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));

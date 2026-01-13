@@ -42,9 +42,10 @@ const months = [
 
 interface SalesDashboardProps {
   isViewOnly?: boolean;
+  onActivityCreated?: () => void;
 }
 
-export function SalesDashboard({ isViewOnly = false }: SalesDashboardProps) {
+export function SalesDashboard({ isViewOnly = false, onActivityCreated }: SalesDashboardProps) {
   const {
     targets,
     records,
@@ -60,7 +61,7 @@ export function SalesDashboard({ isViewOnly = false }: SalesDashboardProps) {
     getAvailableYears,
     getMonthlyTrend,
     isManager,
-  } = useSales();
+  } = useSales({ onActivityCreated });
   const { profile } = useProfile();
 
   const [showRecordForm, setShowRecordForm] = useState(false);
@@ -795,7 +796,7 @@ export function SalesDashboard({ isViewOnly = false }: SalesDashboardProps) {
                       <TableCell className="text-right">
                         <div className="flex flex-col items-end gap-1">
                           <span className={`font-medium ${sales.achievementPercentage >= 100 ? 'text-green-600' :
-                              sales.achievementPercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
+                            sales.achievementPercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
                             }`}>
                             {sales.achievementPercentage.toFixed(1)}%
                           </span>

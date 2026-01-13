@@ -65,6 +65,7 @@ const activityTypeLabels: Record<string, string> = {
   email: 'Email',
   meeting: 'Meeting',
   other: 'Lainnya',
+  closing: 'Closing',
 };
 
 const activityTypeIcons: Record<string, React.ReactNode> = {
@@ -73,6 +74,7 @@ const activityTypeIcons: Record<string, React.ReactNode> = {
   email: <Mail className="h-4 w-4" />,
   meeting: <Users className="h-4 w-4" />,
   other: <Calendar className="h-4 w-4" />,
+  closing: <Briefcase className="h-4 w-4" />,
 };
 
 // Generate month options

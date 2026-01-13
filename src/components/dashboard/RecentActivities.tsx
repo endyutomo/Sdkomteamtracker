@@ -1,27 +1,37 @@
 import { DailyActivity } from '@/types';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { MapPin, Phone, Mail, Users, Calendar, MoreVertical } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Calendar, MoreVertical, Briefcase, Thermometer, Clock, Palmtree, Home } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface RecentActivitiesProps {
   activities: DailyActivity[];
 }
 
-const activityIcons = {
+const activityIcons: Record<string, any> = {
   visit: MapPin,
   call: Phone,
   email: Mail,
   meeting: Users,
   other: Calendar,
+  closing: Briefcase,
+  sick: Thermometer,
+  permission: Clock,
+  time_off: Palmtree,
+  wfh: Home,
 };
 
-const activityLabels = {
+const activityLabels: Record<string, string> = {
   visit: 'Kunjungan',
   call: 'Telepon',
   email: 'Email',
   meeting: 'Meeting',
   other: 'Lainnya',
+  closing: 'Closing',
+  sick: 'Sakit',
+  permission: 'Izin',
+  time_off: 'Cuti',
+  wfh: 'WFH',
 };
 
 export function RecentActivities({ activities }: RecentActivitiesProps) {
@@ -37,7 +47,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
           <MoreVertical className="h-5 w-5" />
         </button>
       </div>
-      
+
       {recentActivities.length === 0 ? (
         <div className="py-8 text-center text-muted-foreground">
           <Calendar className="mx-auto mb-3 h-12 w-12 opacity-50" />
@@ -46,7 +56,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
       ) : (
         <div className="space-y-4">
           {recentActivities.map((activity) => {
-            const Icon = activityIcons[activity.activityType];
+            const Icon = activityIcons[activity.activityType] || Calendar;
             return (
               <div
                 key={activity.id}
@@ -60,7 +70,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                     <div>
                       <p className="font-medium text-foreground">{activity.customerName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {activity.personName} • {activityLabels[activity.activityType]} • {activity.category === 'presales' ? 'Presales' : 'Sales'}
+                        {activity.personName} • {activityLabels[activity.activityType] || activity.activityType} • {activity.category === 'presales' ? 'Presales' : 'Sales'}
                       </p>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">

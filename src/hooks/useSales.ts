@@ -1,9 +1,16 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SalesTarget, SalesRecord, PeriodType } from '@/types/sales';
 import { toast } from 'sonner';
 
-export function useSales() {
+interface UseSalesOptions {
+  onActivityCreated?: () => void;
+}
+
+export function useSales(options?: UseSalesOptions) {
+  const onActivityCreatedRef = useRef(options?.onActivityCreated);
+  onActivityCreatedRef.current = options?.onActivityCreated;
+
   const [targets, setTargets] = useState<SalesTarget[]>([]);
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
@@ -11,6 +18,7 @@ export function useSales() {
   const [salesProfiles, setSalesProfiles] = useState<Array<{ userId: string; name: string; division: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string } | null>(null);
+
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -254,10 +262,38 @@ export function useSales() {
       return;
     }
 
+    // Auto-create activity with type 'closing'
+    const userName = profileMap[user.id] || 'Unknown';
+    const activityNotes = `Closing: ${record.productName} - Qty: ${record.quantity}`;
+
+    const { error: activityError } = await supabase
+      .from('activities')
+      .insert({
+        user_id: user.id,
+        date: record.closingDate.toISOString().split('T')[0],
+        category: 'sales',
+        person_id: user.id,
+        person_name: userName,
+        activity_type: 'closing' as any,
+        customer_name: record.customerName,
+        notes: activityNotes,
+        // Store sales_record_id in notes for linking
+      });
+
+    if (activityError) {
+      console.error('Error creating closing activity:', activityError);
+      // Don't fail the whole operation, just log it
+    } else {
+      // Notify that activity was created so other hooks can refresh
+      onActivityCreatedRef.current?.();
+    }
+
     toast.success('Penjualan berhasil dicatat');
     await fetchRecords();
     return data;
   };
+
+
 
   const updateRecord = async (
     id: string,
@@ -270,7 +306,9 @@ export function useSales() {
       otherExpense: number;
       closingDate: Date;
       notes?: string;
-    }
+    },
+    originalCustomerName?: string,
+    originalClosingDate?: Date
   ) => {
     if (!user) return;
 
@@ -297,11 +335,36 @@ export function useSales() {
       return;
     }
 
+    // Update linked activity
+    const searchCustomer = originalCustomerName || record.customerName;
+    const searchDate = originalClosingDate
+      ? originalClosingDate.toISOString().split('T')[0]
+      : record.closingDate.toISOString().split('T')[0];
+
+    const userName = profileMap[user.id] || 'Unknown';
+    const activityNotes = `Closing: ${record.productName} - Qty: ${record.quantity}`;
+
+    await supabase
+      .from('activities')
+      .update({
+        date: record.closingDate.toISOString().split('T')[0],
+        customer_name: record.customerName,
+        notes: activityNotes,
+      })
+      .eq('user_id', user.id)
+      .eq('customer_name', searchCustomer)
+      .eq('date', searchDate)
+      .eq('activity_type', 'closing');
+
     toast.success('Penjualan berhasil diupdate');
     await fetchRecords();
   };
 
-  const deleteRecord = async (id: string) => {
+
+  const deleteRecord = async (id: string, customerName?: string, closingDate?: Date) => {
+    // First get the record to find linked activity
+    const recordToDelete = records.find(r => r.id === id);
+
     const { error } = await supabase.from('sales_records').delete().eq('id', id);
 
     if (error) {
@@ -310,9 +373,21 @@ export function useSales() {
       return;
     }
 
+    // Delete linked activity
+    if (recordToDelete && user) {
+      await supabase
+        .from('activities')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('customer_name', recordToDelete.customerName)
+        .eq('date', recordToDelete.closingDate.toISOString().split('T')[0])
+        .eq('activity_type', 'closing');
+    }
+
     toast.success('Penjualan berhasil dihapus');
     await fetchRecords();
   };
+
 
   const getTargetForPeriod = (
     periodType: PeriodType,

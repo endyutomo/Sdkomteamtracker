@@ -14,6 +14,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { PendingManagerRequestsDialog } from '@/components/admin/PendingManagerRequestsDialog';
 import { SalesDashboard } from '@/components/sales/SalesDashboard';
+import { ShippingDashboard } from '@/components/shipping/ShippingDashboard';
 import { ActivityAnalytics } from '@/components/activities/ActivityAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -341,9 +342,24 @@ const Index = () => {
                     {profile?.division === 'backoffice' ? 'Monitor penjualan tim' : 'Kelola penjualan dan target Anda'}
                   </p>
                 </div>
-                <SalesDashboard isViewOnly={profile?.division === 'backoffice'} />
+                <SalesDashboard isViewOnly={profile?.division === 'backoffice'} onActivityCreated={refetchActivities} />
               </div>
             )}
+
+            {activeTab === 'shipping' && (profile?.division === 'logistic' || profile?.division === 'backoffice' || isManager) && (
+              <div className="space-y-6 animate-fade-in">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Pengiriman</h2>
+                  <p className="text-muted-foreground">
+                    {profile?.division === 'logistic'
+                      ? 'Kelola pengiriman dan update status'
+                      : 'Monitor semua pengiriman'}
+                  </p>
+                </div>
+                <ShippingDashboard userDivision={profile.division} isManager={isManager} />
+              </div>
+            )}
+
 
             {activeTab === 'report' && (
               <ActivityReport

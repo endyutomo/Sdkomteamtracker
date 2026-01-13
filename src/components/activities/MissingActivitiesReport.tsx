@@ -136,7 +136,9 @@ function getMissingActivities(
           userActivities.has('call') ||
           userActivities.has('email') ||
           userActivities.has('meeting') ||
-          userActivities.has('other');
+          userActivities.has('other') ||
+          userActivities.has('closing');
+
 
         if (hasSick || hasPermission || hasTimeOff) {
           // Valid absence, considered complete

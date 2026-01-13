@@ -17,9 +17,9 @@ const parseCollaboration = (data: Json | null): Collaboration | undefined => {
     personName: (obj.personName as string) || '',
     collaborators: Array.isArray(obj.collaborators)
       ? (obj.collaborators as CollaborationPerson[]).map(c => ({
-          ...c,
-          division: c.division || 'other'
-        }))
+        ...c,
+        division: c.division || 'other'
+      }))
       : undefined,
   };
 };
@@ -171,8 +171,10 @@ export function useActivities() {
       call: 'Telepon',
       email: 'Email',
       meeting: 'Meeting',
-      other: 'Lainnya'
+      other: 'Lainnya',
+      closing: 'Closing'
     };
+
 
     for (const collab of collaborators) {
       // Find the user_id for this collaborator

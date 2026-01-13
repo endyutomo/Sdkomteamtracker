@@ -1,35 +1,56 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>SDKOM Sales Tracking</title>
-    <meta name="description" content="SDKOM Project">
-    <meta name="author" content="Lovable" />
-
-    <!-- TODO: Update og:title to match your application name -->
+    <meta name="description" content="Aplikasi tracking aktivitas sales dan presales SDKOM">
+    <meta name="author" content="SDKOM" />
     
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SDKOM" />
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/dps9GjiEzlew3OaLjCWC7JeZ9Dd2/uploads/1767673118073-Logo SDKOM Edit.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:title" content="SDKOM Sales Tracking">
+    <meta property="og:description" content="Aplikasi tracking aktivitas sales dan presales SDKOM">
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:title" content="SDKOM Sales Tracking">
+    <meta name="twitter:description" content="Aplikasi tracking aktivitas sales dan presales SDKOM">
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    
-  
-  
-  
-  <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/dps9GjiEzlew3OaLjCWC7JeZ9Dd2/uploads/1767673118073-Logo SDKOM Edit.png">
-  <meta property="og:title" content="SDKOM Sales Tracking">
-  <meta name="twitter:title" content="SDKOM Sales Tracking">
-  <meta property="og:description" content="SDKOM Project">
-  <meta name="twitter:description" content="SDKOM Project">
-</head>
+  </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

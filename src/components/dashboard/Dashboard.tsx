@@ -71,36 +71,43 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
 
   const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
   const presalesActivities = activities.filter(a => a.category === 'presales');
-  
+
   const todaySalesActivities = salesActivities.filter(a => isToday(new Date(a.date)));
   const todayPresalesActivities = presalesActivities.filter(a => isToday(new Date(a.date)));
-  
+
   const weekSalesActivities = salesActivities.filter(a => isThisWeek(new Date(a.date)));
   const weekPresalesActivities = presalesActivities.filter(a => isThisWeek(new Date(a.date)));
-  
+
   const visitActivities = activities.filter(a => a.activityType === 'visit');
   const collaborationActivities = activities.filter(a => a.collaboration);
-  
+
   const salesCount = allProfiles.filter(p => p.division === 'sales').length;
   const presalesCount = allProfiles.filter(p => p.division === 'presales').length;
+  const logisticCount = allProfiles.filter(p => p.division === 'logistic').length;
 
   const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration') => {
     setDetailDialog({ open: true, title, filterType });
   };
 
+  // Check if user is backoffice
+  const isBackoffice = currentDivision === 'backoffice';
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Message */}
       {currentUserName && (
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-4">
+        <div className={`bg-gradient-to-r ${isBackoffice ? 'from-blue-500/10 to-blue-500/5 border-blue-500/20' : 'from-primary/10 to-primary/5 border-primary/20'} border rounded-lg p-4`}>
           <h2 className="text-lg font-semibold text-foreground">
-            Selamat datang, <span className="text-primary">{currentUserName}</span>! 👋
+            Selamat datang, <span className={isBackoffice ? 'text-blue-600' : 'text-primary'}>{currentUserName}</span>! 👋
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Semoga hari ini produktif dan menyenangkan.
+            {isBackoffice
+              ? 'Anda memiliki akses penuh untuk memonitor aktivitas tim, penjualan, dan pengiriman.'
+              : 'Semoga hari ini produktif dan menyenangkan.'}
           </p>
         </div>
       )}
+
       {/* Company Header with Logo */}
       <div className="flex items-center justify-between">
         <button
@@ -110,9 +117,9 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           title="Klik untuk edit pengaturan perusahaan"
         >
           {companySettings?.logo_url ? (
-            <LogoImage 
-              src={companySettings.logo_url} 
-              alt={companySettings.name || 'Logo Perusahaan'} 
+            <LogoImage
+              src={companySettings.logo_url}
+              alt={companySettings.name || 'Logo Perusahaan'}
             />
           ) : (
             <div className="h-14 w-14 rounded-lg border border-border bg-muted flex items-center justify-center shadow-sm">
@@ -179,11 +186,12 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         <StatCard
           title="Tim Terdaftar"
           value={allProfiles.length}
-          subtitle={`${salesCount} sales, ${presalesCount} presales`}
+          subtitle={`${salesCount} sales, ${presalesCount} presales${logisticCount > 0 ? `, ${logisticCount} logistik` : ''}`}
           icon={TrendingUp}
           variant="primary"
           onClick={() => setTeamDialog(true)}
         />
+
       </div>
 
       {/* Charts and Recent Activities */}
@@ -192,15 +200,16 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         <RecentActivities activities={activities} />
       </div>
 
-      {/* Missing Activities Card - Visible for Manager and Sales/Presales */}
-      {(isManager || currentDivision === 'sales' || currentDivision === 'presales') && (
-        <MissingActivitiesCard 
-          activities={activities} 
+      {/* Missing Activities Card - Visible for Manager, Backoffice, and Sales/Presales */}
+      {(isManager || currentDivision === 'backoffice' || currentDivision === 'sales' || currentDivision === 'presales') && (
+        <MissingActivitiesCard
+          activities={activities}
           allProfiles={allProfiles}
           currentUserId={currentUserId}
           onAddActivity={onAddActivity}
         />
       )}
+
 
       <ActivityDetailDialog
         open={detailDialog.open}

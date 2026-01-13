@@ -1,4 +1,4 @@
-import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet, DollarSign } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, Plus, LogOut, User, Settings, FileSpreadsheet, DollarSign, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,10 +37,21 @@ export function Header({
     { id: 'persons', label: 'Tim', icon: Users },
   ];
 
-  // Add sales tab for sales division users, backoffice, and managers
-  const tabs = (userDivision === 'sales' || userDivision === 'backoffice' || isManager)
-    ? [...baseTabs.slice(0, 2), { id: 'sales', label: 'Penjualan', icon: DollarSign }, ...baseTabs.slice(2)]
-    : baseTabs;
+  // Build tabs dynamically based on user division
+  let tabs = [...baseTabs];
+
+  // Add sales tab for sales, backoffice, and managers (before report)
+  if (userDivision === 'sales' || userDivision === 'backoffice' || isManager) {
+    const reportIndex = tabs.findIndex(t => t.id === 'report');
+    tabs.splice(reportIndex, 0, { id: 'sales', label: 'Penjualan', icon: DollarSign });
+  }
+
+  // Add shipping tab for logistic, backoffice, and managers (before report)
+  if (userDivision === 'logistic' || userDivision === 'backoffice' || isManager) {
+    const reportIndex = tabs.findIndex(t => t.id === 'report');
+    tabs.splice(reportIndex, 0, { id: 'shipping', label: 'Pengiriman', icon: Truck });
+  }
+
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
@@ -82,8 +93,8 @@ export function Header({
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                 >
                   <tab.icon className="h-4 w-4" />
@@ -97,10 +108,10 @@ export function Header({
             {userDivision && (
               <Badge variant="outline" className="hidden sm:flex items-center gap-1">
                 <User className="h-3 w-3" />
-                {userDivision === 'manager' ? 'Manager' : 
-                 userDivision === 'sales' ? 'Sales' : 
-                 userDivision === 'backoffice' ? 'Backoffice' :
-                 userDivision === 'logistic' ? 'Logistik' : 'Presales'}
+                {userDivision === 'manager' ? 'Manager' :
+                  userDivision === 'sales' ? 'Sales' :
+                    userDivision === 'backoffice' ? 'Backoffice' :
+                      userDivision === 'logistic' ? 'Logistik' : 'Presales'}
                 {isManager && <span className="text-xs">(Admin)</span>}
               </Badge>
             )}
@@ -132,8 +143,8 @@ export function Header({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
             >
               <tab.icon className="h-4 w-4" />
