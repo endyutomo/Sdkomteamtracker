@@ -200,8 +200,8 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         <RecentActivities activities={activities} />
       </div>
 
-      {/* Missing Activities Card - Visible for Manager, Backoffice, and Sales/Presales */}
-      {(isManager || currentDivision === 'backoffice' || currentDivision === 'sales' || currentDivision === 'presales') && (
+      {/* Missing Activities Card - Visible for Manager, Backoffice, Logistic, and Sales/Presales */}
+      {(isManager || currentDivision === 'backoffice' || currentDivision === 'logistic' || currentDivision === 'sales' || currentDivision === 'presales') && (
         <MissingActivitiesCard
           activities={activities}
           allProfiles={allProfiles}

@@ -62,7 +62,7 @@ function getMissingActivities(
   const noon = setSeconds(setMinutes(setHours(new Date(), 12), 0), 0);
   const canFillToday = isBefore(now, noon);
 
-  const salesPresalesProfiles = profiles.filter((p) => p.division === "sales" || p.division === "presales");
+  const salesPresalesProfiles = profiles.filter((p) => p.division === "sales" || p.division === "presales" || p.division === "logistic" || p.division === "backoffice");
 
   // Get all weekdays in the date range
   const allDays = eachDayOfInterval({ start: startDate, end: endDate }).filter(
@@ -149,6 +149,8 @@ export function MissingActivitiesCard({
 
   const salesMissing = currentMissing.filter((m) => m.division === "sales");
   const presalesMissing = currentMissing.filter((m) => m.division === "presales");
+  const logisticMissing = currentMissing.filter((m) => m.division === "logistic");
+  const backofficeMissing = currentMissing.filter((m) => m.division === "backoffice");
 
   const displayedItems = expanded ? currentMissing : currentMissing.slice(0, 5);
 
@@ -191,6 +193,12 @@ export function MissingActivitiesCard({
           </Badge>
           <Badge variant="secondary" className="text-xs">
             Presales: {presalesMissing.length}
+          </Badge>
+          <Badge variant="outline" className="text-xs bg-blue-50">
+            Logistik: {logisticMissing.length}
+          </Badge>
+          <Badge variant="outline" className="text-xs bg-purple-50">
+            Backoffice: {backofficeMissing.length}
           </Badge>
         </div>
 

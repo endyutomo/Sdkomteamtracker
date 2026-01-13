@@ -86,7 +86,7 @@ function getMissingActivities(
 ): MissingActivity[] {
   const today = startOfDay(new Date());
   const salesPresalesProfiles = profiles.filter(
-    p => p.division === 'sales' || p.division === 'presales'
+    p => p.division === 'sales' || p.division === 'presales' || p.division === 'logistic' || p.division === 'backoffice'
   );
 
   // Get all weekdays in the date range (only up to today)
@@ -193,7 +193,7 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
   const [periodType, setPeriodType] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
   const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth()));
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
-  const [activeTab, setActiveTab] = useState<'sales' | 'presales'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'presales' | 'logistic' | 'backoffice'>('sales');
 
   const today = new Date();
 
@@ -231,12 +231,20 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
 
   const salesMissing = missingActivities.filter(m => m.division === 'sales');
   const presalesMissing = missingActivities.filter(m => m.division === 'presales');
+  const logisticMissing = missingActivities.filter(m => m.division === 'logistic');
+  const backofficeMissing = missingActivities.filter(m => m.division === 'backoffice');
 
-  const currentMissing = activeTab === 'sales' ? salesMissing : presalesMissing;
+  const currentMissing =
+    activeTab === 'sales' ? salesMissing :
+      activeTab === 'presales' ? presalesMissing :
+        activeTab === 'logistic' ? logisticMissing :
+          backofficeMissing;
 
   // Get accumulated counts for summary
   const salesCounts = getAccumulatedCounts(salesMissing);
   const presalesCounts = getAccumulatedCounts(presalesMissing);
+  const logisticCounts = getAccumulatedCounts(logisticMissing);
+  const backofficeCounts = getAccumulatedCounts(backofficeMissing);
 
   // Export to Excel
   const exportToExcel = (division: 'all' | 'sales' | 'presales') => {
@@ -246,11 +254,19 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
       dataToExport = salesMissing;
     } else if (division === 'presales') {
       dataToExport = presalesMissing;
+    } else if (division === 'logistic') {
+      dataToExport = logisticMissing;
+    } else if (division === 'backoffice') {
+      dataToExport = backofficeMissing;
     }
 
     const exportData = dataToExport.map(item => ({
       'Nama': item.profileName,
-      'Divisi': item.division === 'sales' ? 'Sales' : 'Presales',
+      'Divisi':
+        item.division === 'sales' ? 'Sales' :
+          item.division === 'presales' ? 'Presales' :
+            item.division === 'logistic' ? 'Logistik' :
+              'Backoffice',
       'Tanggal': format(item.date, 'dd/MM/yyyy', { locale: id }),
       'Hari': item.dayName,
       'Status': item.status,
@@ -278,6 +294,8 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
   const exportAccumulatedSummary = () => {
     const salesProfiles = allProfiles.filter(p => p.division === 'sales');
     const presalesProfiles = allProfiles.filter(p => p.division === 'presales');
+    const logisticProfiles = allProfiles.filter(p => p.division === 'logistic');
+    const backofficeProfiles = allProfiles.filter(p => p.division === 'backoffice');
 
     const salesData = salesProfiles.map(p => ({
       'Nama': p.name,
@@ -291,7 +309,19 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
       'Jumlah Hari Tidak Mengisi': presalesCounts.get(p.id) || 0
     }));
 
-    const exportData = [...salesData, ...presalesData].filter(d => d['Jumlah Hari Tidak Mengisi'] > 0);
+    const logisticData = logisticProfiles.map(p => ({
+      'Nama': p.name,
+      'Divisi': 'Logistik',
+      'Jumlah Hari Tidak Mengisi': logisticCounts.get(p.id) || 0
+    }));
+
+    const backofficeData = backofficeProfiles.map(p => ({
+      'Nama': p.name,
+      'Divisi': 'Backoffice',
+      'Jumlah Hari Tidak Mengisi': backofficeCounts.get(p.id) || 0
+    }));
+
+    const exportData = [...salesData, ...presalesData, ...logisticData, ...backofficeData].filter(d => d['Jumlah Hari Tidak Mengisi'] > 0);
 
     if (exportData.length === 0) {
       return;
@@ -315,6 +345,52 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
       return `Tahun ${selectedYear}`;
     }
   };
+
+  const renderMissingTable = (items: MissingActivity[], divisionLabel: string) => (
+    <div className="mt-4">
+      {items.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Semua anggota {divisionLabel} sudah mengisi aktivitas
+        </div>
+      ) : (
+        <div className="rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Nama</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Hari</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={`${item.profileId}-${format(item.date, 'yyyy-MM-dd')}`}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {item.profileName}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {format(item.date, 'dd MMM yyyy', { locale: id })}
+                    </TableCell>
+                    <TableCell>{item.dayName}</TableCell>
+                    <TableCell>
+                      <Badge variant="destructive" className="text-xs">
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Card>
@@ -412,7 +488,7 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
@@ -441,119 +517,82 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
               </div>
             </CardContent>
           </Card>
+          <Card className="bg-blue-50 border-blue-100">
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Logistik</p>
+                  <p className="text-2xl font-bold">{logisticMissing.length}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {logisticCounts.size} orang tidak mengisi
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-100">{logisticCounts.size} orang</Badge>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-purple-50 border-purple-100">
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Backoffice</p>
+                  <p className="text-2xl font-bold">{backofficeMissing.length}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {backofficeCounts.size} orang tidak mengisi
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-100">{backofficeCounts.size} orang</Badge>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Tabs for Sales/Presales */}
+        {/* Tabs for Divisions */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-          <div className="flex items-center justify-between">
-            <TabsList>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-auto h-auto gap-1">
               <TabsTrigger value="sales">
                 Sales ({salesMissing.length})
               </TabsTrigger>
               <TabsTrigger value="presales">
                 Presales ({presalesMissing.length})
               </TabsTrigger>
+              <TabsTrigger value="logistic">
+                Logistik ({logisticMissing.length})
+              </TabsTrigger>
+              <TabsTrigger value="backoffice">
+                Backoffice ({backofficeMissing.length})
+              </TabsTrigger>
             </TabsList>
             <Button
               variant="outline"
               size="sm"
               onClick={() => exportToExcel(activeTab)}
-              className="gap-2"
+              className="gap-2 shrink-0"
               disabled={currentMissing.length === 0}
             >
               <FileSpreadsheet className="h-4 w-4" />
-              Export {activeTab === 'sales' ? 'Sales' : 'Presales'}
+              Export {activeTab === 'sales' ? 'Sales' : activeTab === 'presales' ? 'Presales' : activeTab === 'logistic' ? 'Logistik' : 'Backoffice'}
             </Button>
           </div>
 
-          <TabsContent value="sales" className="mt-4">
-            {salesMissing.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Semua sales sudah mengisi aktivitas
-              </div>
-            ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>Nama</TableHead>
-                        <TableHead>Tanggal</TableHead>
-                        <TableHead>Hari</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {salesMissing.map((item, index) => (
-                        <TableRow key={`${item.profileId}-${format(item.date, 'yyyy-MM-dd')}`}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              {item.profileName}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {format(item.date, 'dd MMM yyyy', { locale: id })}
-                          </TableCell>
-                          <TableCell>{item.dayName}</TableCell>
-                          <TableCell>
-                            <Badge variant="destructive" className="text-xs">
-                              {item.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
+          <TabsContent value="sales">
+            {renderMissingTable(salesMissing, 'sales')}
           </TabsContent>
 
-          <TabsContent value="presales" className="mt-4">
-            {presalesMissing.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Semua presales sudah mengisi aktivitas
-              </div>
-            ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>Nama</TableHead>
-                        <TableHead>Tanggal</TableHead>
-                        <TableHead>Hari</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {presalesMissing.map((item, index) => (
-                        <TableRow key={`${item.profileId}-${format(item.date, 'yyyy-MM-dd')}`}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              {item.profileName}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {format(item.date, 'dd MMM yyyy', { locale: id })}
-                          </TableCell>
-                          <TableCell>{item.dayName}</TableCell>
-                          <TableCell>
-                            <Badge variant="destructive" className="text-xs">
-                              {item.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
+          <TabsContent value="presales">
+            {renderMissingTable(presalesMissing, 'presales')}
+          </TabsContent>
+
+          <TabsContent value="logistic">
+            {renderMissingTable(logisticMissing, 'logistik')}
+          </TabsContent>
+
+          <TabsContent value="backoffice">
+            {renderMissingTable(backofficeMissing, 'backoffice')}
           </TabsContent>
         </Tabs>
+
       </CardContent>
     </Card>
   );

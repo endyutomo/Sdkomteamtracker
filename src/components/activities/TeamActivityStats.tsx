@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Trophy, Medal, Award, TrendingUp, Users, Briefcase, Layers, Calendar } from 'lucide-react';
+import { Trophy, Medal, Award, TrendingUp, Users, Briefcase, Layers, Calendar, Home, Shield } from 'lucide-react';
 import { startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, startOfYear, endOfYear, getWeek, format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -266,7 +266,7 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="all" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-4 h-auto gap-1">
                         <TabsTrigger value="all" className="gap-2">
                             <Layers className="h-4 w-4" />
                             Semua
@@ -279,6 +279,14 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
                             <Users className="h-4 w-4" />
                             Presales
                         </TabsTrigger>
+                        <TabsTrigger value="logistic" className="gap-2">
+                            <Home className="h-4 w-4" />
+                            Logistik
+                        </TabsTrigger>
+                        <TabsTrigger value="backoffice" className="gap-2">
+                            <Shield className="h-4 w-4" />
+                            Backoffice
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="all">
@@ -290,7 +298,14 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
                     <TabsContent value="presales">
                         {renderTable(stats.filter(s => s.division === 'presales'))}
                     </TabsContent>
+                    <TabsContent value="logistic">
+                        {renderTable(stats.filter(s => s.division === 'logistic'))}
+                    </TabsContent>
+                    <TabsContent value="backoffice">
+                        {renderTable(stats.filter(s => s.division === 'backoffice'))}
+                    </TabsContent>
                 </Tabs>
+
             </CardContent>
         </Card>
     );

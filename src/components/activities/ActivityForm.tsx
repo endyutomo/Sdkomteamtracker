@@ -176,15 +176,16 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       } else if (currentProfile.division === 'presales') {
         setCategory('presales');
         setPersonId(currentProfile.id);
-      } else if (currentProfile.division === 'manager' || currentProfile.division === 'backoffice') {
-        // Manager and Backoffice can choose, default to sales category
+      } else if (currentProfile.division === 'manager') {
+        // Manager can choose, default to sales category and their own ID
         setCategory('sales');
         setPersonId(currentProfile.id);
-      } else if (currentProfile.division === 'logistic') {
-        // Logistic can create activities too
+      } else if (currentProfile.division === 'backoffice' || currentProfile.division === 'logistic') {
+        // Backoffice and Logistic are locked to sales category and their own ID
         setCategory('sales');
         setPersonId(currentProfile.id);
       }
+
     }
   }, [open, editActivity, currentProfile]);
 
@@ -424,18 +425,29 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
               {!editActivity && (
                 <div className="space-y-2">
                   <Label>Kategori Aktivitas</Label>
-                  <Select value={category} onValueChange={(v) => {
-                    setCategory(v as ActivityCategory);
-                    setPersonId('');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sales">Aktivitas Sales</SelectItem>
-                      <SelectItem value="presales">Aktivitas Presales</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {(currentProfile?.division === 'manager' || (currentProfile && isUserSuperadmin(currentProfile.user_id))) ? (
+                    <Select value={category} onValueChange={(v) => {
+                      setCategory(v as ActivityCategory);
+                      setPersonId('');
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sales">Aktivitas Sales</SelectItem>
+                        <SelectItem value="presales">Aktivitas Presales</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={category === 'sales' ? 'Aktivitas Sales' : 'Aktivitas Presales'}
+                        disabled
+                        className="bg-muted cursor-not-allowed"
+                      />
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -513,30 +525,47 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
           {/* Person - Shared but label dynamic */}
           <div className="space-y-2">
             <Label>{isAttendanceMode ? 'Nama Anggota Tim' : (category === 'sales' ? 'Sales Person' : 'Presales Person')}</Label>
-            <Select value={personId} onValueChange={setPersonId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih anggota tim" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableOptions.length === 0 ? (
-                  <div className="p-2 text-sm text-muted-foreground">
-                    Belum ada anggota terdaftar.
-                  </div>
-                ) : (
-                  availableOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      <div className="flex items-center gap-2">
-                        {option.name}
-                        {option.user_id && isUserSuperadmin(option.user_id) && (
-                          <Shield className="h-3 w-3 text-amber-500" />
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            {/* Show dropdown only for managers/superadmins, otherwise show read-only */}
+            {(currentProfile?.division === 'manager' || (currentProfile && isUserSuperadmin(currentProfile.user_id))) ? (
+              <Select value={personId} onValueChange={setPersonId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih anggota tim" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableOptions.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Belum ada anggota terdaftar.
+                    </div>
+                  ) : (
+                    availableOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        <div className="flex items-center gap-2">
+                          {option.name}
+                          {option.user_id && isUserSuperadmin(option.user_id) && (
+                            <Shield className="h-3 w-3 text-amber-500" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={currentProfile ? `${currentProfile.name} (${currentProfile.division === 'sales' ? 'Sales' : currentProfile.division === 'presales' ? 'Presales' : currentProfile.division === 'backoffice' ? 'Backoffice' : currentProfile.division === 'logistic' ? 'Logistik' : currentProfile.division})` : ''}
+                  disabled
+                  className="bg-muted cursor-not-allowed"
+                />
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+            {currentProfile && currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id) && (
+              <p className="text-[10px] text-muted-foreground">Nama dan divisi otomatis diisi berdasarkan akun Anda.</p>
+            )}
+
           </div>
+
 
 
           {!isAttendanceMode && (
@@ -734,9 +763,9 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
                                   {option.name}
                                   <span className="text-xs text-muted-foreground">
                                     ({option.division === 'manager' ? 'Manager' :
-                                      option.division === 'sales' ? 'Sales' : 
-                                      option.division === 'backoffice' ? 'Backoffice' :
-                                      option.division === 'logistic' ? 'Driver' : 'Presales'})
+                                      option.division === 'sales' ? 'Sales' :
+                                        option.division === 'backoffice' ? 'Backoffice' :
+                                          option.division === 'logistic' ? 'Driver' : 'Presales'})
                                   </span>
                                   {option.user_id && isUserSuperadmin(option.user_id) && (
                                     <Shield className="h-3 w-3 text-amber-500" />

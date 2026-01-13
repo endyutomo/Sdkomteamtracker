@@ -356,9 +356,13 @@ export function useSales(options?: UseSalesOptions) {
       .eq('date', searchDate)
       .eq('activity_type', 'closing');
 
+    // Notify to refresh activities list
+    onActivityCreatedRef.current?.();
+
     toast.success('Penjualan berhasil diupdate');
     await fetchRecords();
   };
+
 
 
   const deleteRecord = async (id: string, customerName?: string, closingDate?: Date) => {
@@ -384,9 +388,13 @@ export function useSales(options?: UseSalesOptions) {
         .eq('activity_type', 'closing');
     }
 
+    // Notify to refresh activities list
+    onActivityCreatedRef.current?.();
+
     toast.success('Penjualan berhasil dihapus');
     await fetchRecords();
   };
+
 
 
   const getTargetForPeriod = (
