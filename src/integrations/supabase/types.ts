@@ -490,7 +490,12 @@ export type Database = {
       activity_category: "sales" | "presales"
       activity_type: "visit" | "call" | "email" | "meeting" | "other"
       app_role: "admin" | "user" | "superadmin"
-      division_type: "sales" | "presales" | "manager"
+      division_type:
+        | "sales"
+        | "presales"
+        | "manager"
+        | "backoffice"
+        | "logistic"
       person_role: "sales" | "presales" | "other"
     }
     CompositeTypes: {
@@ -622,7 +627,7 @@ export const Constants = {
       activity_category: ["sales", "presales"],
       activity_type: ["visit", "call", "email", "meeting", "other"],
       app_role: ["admin", "user", "superadmin"],
-      division_type: ["sales", "presales", "manager"],
+      division_type: ["sales", "presales", "manager", "backoffice", "logistic"],
       person_role: ["sales", "presales", "other"],
     },
   },
