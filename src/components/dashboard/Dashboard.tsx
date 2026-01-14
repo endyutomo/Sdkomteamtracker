@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw, Building2, Loader2 } from 'lucide-react';
+import { Activity, Users, MapPin, TrendingUp, Briefcase, RefreshCw, Building2, Loader2, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatCard } from './StatCard';
 import { ActivityChart } from './ActivityChart';
@@ -64,19 +64,25 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
-    filterType?: 'sales' | 'presales' | 'visit' | 'collaboration';
+    filterType?: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic';
   }>({ open: false, title: '' });
 
   const [teamDialog, setTeamDialog] = useState(false);
 
   const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
   const presalesActivities = activities.filter(a => a.category === 'presales');
+  
+  // Get logistic user IDs from profiles
+  const logisticUserIds = allProfiles.filter(p => p.division === 'logistic').map(p => p.user_id);
+  const logisticActivities = activities.filter(a => logisticUserIds.includes(a.userId));
 
   const todaySalesActivities = salesActivities.filter(a => isToday(new Date(a.date)));
   const todayPresalesActivities = presalesActivities.filter(a => isToday(new Date(a.date)));
+  const todayLogisticActivities = logisticActivities.filter(a => isToday(new Date(a.date)));
 
   const weekSalesActivities = salesActivities.filter(a => isThisWeek(new Date(a.date)));
   const weekPresalesActivities = presalesActivities.filter(a => isThisWeek(new Date(a.date)));
+  const weekLogisticActivities = logisticActivities.filter(a => isThisWeek(new Date(a.date)));
 
   const visitActivities = activities.filter(a => a.activityType === 'visit');
   const collaborationActivities = activities.filter(a => a.collaboration);
@@ -84,8 +90,9 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
   const salesCount = allProfiles.filter(p => p.division === 'sales').length;
   const presalesCount = allProfiles.filter(p => p.division === 'presales').length;
   const logisticCount = allProfiles.filter(p => p.division === 'logistic').length;
+  const backofficeCount = allProfiles.filter(p => p.division === 'backoffice').length;
 
-  const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration') => {
+  const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic') => {
     setDetailDialog({ open: true, title, filterType });
   };
 
@@ -150,7 +157,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <StatCard
           title="Aktivitas Sales"
           value={todaySalesActivities.length}
@@ -168,11 +175,19 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           onClick={() => openDetail('Aktivitas Presales', 'presales')}
         />
         <StatCard
+          title="Aktivitas Kurir"
+          value={todayLogisticActivities.length}
+          subtitle={`${weekLogisticActivities.length} minggu ini`}
+          icon={Truck}
+          variant="success"
+          onClick={() => openDetail('Aktivitas Kurir', 'logistic')}
+        />
+        <StatCard
           title="Total Kunjungan"
           value={visitActivities.length}
           subtitle="Semua waktu"
           icon={MapPin}
-          variant="success"
+          variant="warning"
           onClick={() => openDetail('Total Kunjungan', 'visit')}
         />
         <StatCard
@@ -180,18 +195,17 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           value={collaborationActivities.length}
           subtitle="Kunjungan dengan tim"
           icon={Users}
-          variant="warning"
+          variant="primary"
           onClick={() => openDetail('Kolaborasi', 'collaboration')}
         />
         <StatCard
           title="Tim Terdaftar"
           value={allProfiles.length}
-          subtitle={`${salesCount} sales, ${presalesCount} presales${logisticCount > 0 ? `, ${logisticCount} logistik` : ''}`}
+          subtitle={`${salesCount}S ${presalesCount}P ${logisticCount}L ${backofficeCount}B`}
           icon={TrendingUp}
-          variant="primary"
+          variant="info"
           onClick={() => setTeamDialog(true)}
         />
-
       </div>
 
       {/* Charts and Recent Activities */}
@@ -217,6 +231,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         title={detailDialog.title}
         activities={activities}
         filterType={detailDialog.filterType}
+        logisticUserIds={logisticUserIds}
       />
 
       <TeamDetailDialog

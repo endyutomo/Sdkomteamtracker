@@ -1,7 +1,7 @@
 import { DailyActivity } from '@/types';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { MapPin, Phone, Mail, Users, Calendar, MoreVertical, Briefcase, Thermometer, Clock, Palmtree, Home } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Calendar, MoreVertical, Briefcase, Thermometer, Clock, Palmtree, Home, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface RecentActivitiesProps {

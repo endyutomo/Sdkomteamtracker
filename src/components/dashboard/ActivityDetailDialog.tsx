@@ -5,22 +5,28 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Phone, Mail, MapPin, MessageSquare, Users, Calendar, Navigation, Briefcase, FileText } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageSquare, Users, Calendar, Navigation, Briefcase, FileText, Thermometer, Clock, Palmtree, Home } from 'lucide-react';
 
 interface ActivityDetailDialogProps {
   open: boolean;
   onClose: () => void;
   title: string;
   activities: DailyActivity[];
-  filterType?: 'sales' | 'presales' | 'visit' | 'collaboration';
+  filterType?: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic';
+  logisticUserIds?: string[];
 }
 
 const activityTypeConfig: Record<string, { label: string; icon: any; color: string }> = {
-  visit: { label: 'Kunjungan', icon: MapPin, color: 'bg-green-100 text-green-800' },
-  call: { label: 'Telepon', icon: Phone, color: 'bg-blue-100 text-blue-800' },
-  email: { label: 'Email', icon: Mail, color: 'bg-purple-100 text-purple-800' },
-  meeting: { label: 'Meeting', icon: Users, color: 'bg-orange-100 text-orange-800' },
-  other: { label: 'Lainnya', icon: MessageSquare, color: 'bg-gray-100 text-gray-800' },
+  visit: { label: 'Kunjungan', icon: MapPin, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+  call: { label: 'Telepon', icon: Phone, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
+  email: { label: 'Email', icon: Mail, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' },
+  meeting: { label: 'Meeting', icon: Users, color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
+  other: { label: 'Lainnya', icon: MessageSquare, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' },
+  closing: { label: 'Closing', icon: Briefcase, color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' },
+  sick: { label: 'Sakit', icon: Thermometer, color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  permission: { label: 'Izin', icon: Clock, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  time_off: { label: 'Cuti', icon: Palmtree, color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400' },
+  wfh: { label: 'WFH', icon: Home, color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400' },
 };
 
 export function ActivityDetailDialog({
@@ -29,6 +35,7 @@ export function ActivityDetailDialog({
   title,
   activities,
   filterType,
+  logisticUserIds = [],
 }: ActivityDetailDialogProps) {
   const filteredActivities = activities.filter((activity) => {
     if (!filterType) return true;
@@ -36,6 +43,7 @@ export function ActivityDetailDialog({
     if (filterType === 'presales') return activity.category === 'presales';
     if (filterType === 'visit') return activity.activityType === 'visit';
     if (filterType === 'collaboration') return !!activity.collaboration;
+    if (filterType === 'logistic') return logisticUserIds.includes(activity.userId);
     return true;
   });
 
