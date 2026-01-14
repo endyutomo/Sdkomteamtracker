@@ -166,6 +166,53 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_bookings: {
+        Row: {
+          booked_by: string
+          booking_date: string
+          booking_time: string | null
+          created_at: string
+          driver_id: string
+          id: string
+          notes: string | null
+          shipment_id: string
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
+        }
+        Insert: {
+          booked_by: string
+          booking_date: string
+          booking_time?: string | null
+          created_at?: string
+          driver_id: string
+          id?: string
+          notes?: string | null
+          shipment_id: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+        }
+        Update: {
+          booked_by?: string
+          booking_date?: string
+          booking_time?: string | null
+          created_at?: string
+          driver_id?: string
+          id?: string
+          notes?: string | null
+          shipment_id?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_bookings_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reads: {
         Row: {
           id: string
@@ -451,6 +498,125 @@ export type Database = {
         }
         Relationships: []
       }
+      shipment_tracking: {
+        Row: {
+          id: string
+          latitude: number
+          location_name: string | null
+          longitude: number
+          notes: string | null
+          recorded_at: string
+          shipment_id: string
+          status: Database["public"]["Enums"]["shipping_status"] | null
+        }
+        Insert: {
+          id?: string
+          latitude: number
+          location_name?: string | null
+          longitude: number
+          notes?: string | null
+          recorded_at?: string
+          shipment_id: string
+          status?: Database["public"]["Enums"]["shipping_status"] | null
+        }
+        Update: {
+          id?: string
+          latitude?: number
+          location_name?: string | null
+          longitude?: number
+          notes?: string | null
+          recorded_at?: string
+          shipment_id?: string
+          status?: Database["public"]["Enums"]["shipping_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_tracking_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_latitude: number | null
+          current_location_name: string | null
+          current_longitude: number | null
+          delivery_date: string | null
+          dimensions: string | null
+          driver_id: string | null
+          estimated_delivery: string | null
+          id: string
+          item_description: string
+          last_location_update: string | null
+          notes: string | null
+          pickup_date: string | null
+          recipient_address: string
+          recipient_name: string
+          recipient_phone: string | null
+          sender_address: string
+          sender_name: string
+          sender_phone: string | null
+          status: Database["public"]["Enums"]["shipping_status"]
+          updated_at: string
+          weight_kg: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_latitude?: number | null
+          current_location_name?: string | null
+          current_longitude?: number | null
+          delivery_date?: string | null
+          dimensions?: string | null
+          driver_id?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          item_description: string
+          last_location_update?: string | null
+          notes?: string | null
+          pickup_date?: string | null
+          recipient_address: string
+          recipient_name: string
+          recipient_phone?: string | null
+          sender_address: string
+          sender_name: string
+          sender_phone?: string | null
+          status?: Database["public"]["Enums"]["shipping_status"]
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_latitude?: number | null
+          current_location_name?: string | null
+          current_longitude?: number | null
+          delivery_date?: string | null
+          dimensions?: string | null
+          driver_id?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          item_description?: string
+          last_location_update?: string | null
+          notes?: string | null
+          pickup_date?: string | null
+          recipient_address?: string
+          recipient_name?: string
+          recipient_phone?: string | null
+          sender_address?: string
+          sender_name?: string
+          sender_phone?: string | null
+          status?: Database["public"]["Enums"]["shipping_status"]
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -501,6 +667,7 @@ export type Database = {
         | "time_off"
         | "wfh"
       app_role: "admin" | "user" | "superadmin"
+      booking_status: "pending" | "confirmed" | "completed" | "cancelled"
       division_type:
         | "sales"
         | "presales"
@@ -508,6 +675,13 @@ export type Database = {
         | "backoffice"
         | "logistic"
       person_role: "sales" | "presales" | "other"
+      shipping_status:
+        | "pending"
+        | "booked"
+        | "picked_up"
+        | "in_transit"
+        | "delivered"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -648,8 +822,17 @@ export const Constants = {
         "wfh",
       ],
       app_role: ["admin", "user", "superadmin"],
+      booking_status: ["pending", "confirmed", "completed", "cancelled"],
       division_type: ["sales", "presales", "manager", "backoffice", "logistic"],
       person_role: ["sales", "presales", "other"],
+      shipping_status: [
+        "pending",
+        "booked",
+        "picked_up",
+        "in_transit",
+        "delivered",
+        "cancelled",
+      ],
     },
   },
 } as const
