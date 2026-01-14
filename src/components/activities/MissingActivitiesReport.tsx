@@ -247,7 +247,7 @@ export function MissingActivitiesReport({ activities, allProfiles }: MissingActi
   const backofficeCounts = getAccumulatedCounts(backofficeMissing);
 
   // Export to Excel
-  const exportToExcel = (division: 'all' | 'sales' | 'presales') => {
+  const exportToExcel = (division: 'all' | 'sales' | 'presales' | 'logistic' | 'backoffice') => {
     let dataToExport = missingActivities;
 
     if (division === 'sales') {

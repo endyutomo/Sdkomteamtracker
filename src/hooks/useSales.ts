@@ -354,7 +354,7 @@ export function useSales(options?: UseSalesOptions) {
       .eq('user_id', user.id)
       .eq('customer_name', searchCustomer)
       .eq('date', searchDate)
-      .eq('activity_type', 'closing');
+      .eq('activity_type', 'closing' as any);
 
     // Notify to refresh activities list
     onActivityCreatedRef.current?.();
@@ -385,7 +385,7 @@ export function useSales(options?: UseSalesOptions) {
         .eq('user_id', user.id)
         .eq('customer_name', recordToDelete.customerName)
         .eq('date', recordToDelete.closingDate.toISOString().split('T')[0])
-        .eq('activity_type', 'closing');
+        .eq('activity_type', 'closing' as any);
     }
 
     // Notify to refresh activities list

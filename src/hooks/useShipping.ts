@@ -146,15 +146,15 @@ export function useShipping() {
         if (!user) return;
 
         try {
-            const { data, error } = await supabase
-                .from('shipments')
+            const { data, error } = await (supabase
+                .from('shipments' as any)
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false }) as any);
 
             if (error) throw error;
 
-            const mappedShipments = (data || []).map((row: ShipmentRow) =>
-                mapRowToShipment(row, profiles)
+            const mappedShipments = (data || []).map((row: any) =>
+                mapRowToShipment(row as ShipmentRow, profiles)
             );
             setShipments(mappedShipments);
         } catch (error: unknown) {
@@ -168,15 +168,15 @@ export function useShipping() {
         if (!user) return;
 
         try {
-            const { data, error } = await supabase
-                .from('driver_bookings')
+            const { data, error } = await (supabase
+                .from('driver_bookings' as any)
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false }) as any);
 
             if (error) throw error;
 
-            const mappedBookings = (data || []).map((row: BookingRow) =>
-                mapRowToBooking(row, profiles)
+            const mappedBookings = (data || []).map((row: any) =>
+                mapRowToBooking(row as BookingRow, profiles)
             );
             setBookings(mappedBookings);
         } catch (error: unknown) {
@@ -207,8 +207,8 @@ export function useShipping() {
         if (!user) return null;
 
         try {
-            const { data: result, error } = await supabase
-                .from('shipments')
+            const { data: result, error } = await (supabase
+                .from('shipments' as any)
                 .insert({
                     created_by: user.id,
                     sender_name: data.senderName,
@@ -225,7 +225,7 @@ export function useShipping() {
                     notes: data.notes || null,
                 })
                 .select()
-                .single();
+                .single() as any);
 
             if (error) throw error;
 
@@ -258,10 +258,10 @@ export function useShipping() {
             if (updates.estimatedDelivery !== undefined) updateData.estimated_delivery = updates.estimatedDelivery?.toISOString().split('T')[0];
             if (updates.notes !== undefined) updateData.notes = updates.notes;
 
-            const { error } = await supabase
-                .from('shipments')
+            const { error } = await (supabase
+                .from('shipments' as any)
                 .update(updateData)
-                .eq('id', id);
+                .eq('id', id) as any);
 
             if (error) throw error;
 
@@ -295,22 +295,22 @@ export function useShipping() {
                 updateData.last_location_update = new Date().toISOString();
             }
 
-            const { error } = await supabase
-                .from('shipments')
+            const { error } = await (supabase
+                .from('shipments' as any)
                 .update(updateData)
-                .eq('id', id);
+                .eq('id', id) as any);
 
             if (error) throw error;
 
             // Add tracking record
             if (location) {
-                await supabase.from('shipment_tracking').insert({
+                await (supabase.from('shipment_tracking' as any).insert({
                     shipment_id: id,
                     latitude: location.latitude,
                     longitude: location.longitude,
                     location_name: location.locationName,
                     status,
-                });
+                }) as any);
             }
 
             await fetchShipments();
@@ -326,10 +326,10 @@ export function useShipping() {
     // Delete shipment
     const deleteShipment = async (id: string): Promise<boolean> => {
         try {
-            const { error } = await supabase
-                .from('shipments')
+            const { error } = await (supabase
+                .from('shipments' as any)
                 .delete()
-                .eq('id', id);
+                .eq('id', id) as any);
 
             if (error) throw error;
 
@@ -349,8 +349,8 @@ export function useShipping() {
 
         try {
             // Create booking
-            const { data: booking, error: bookingError } = await supabase
-                .from('driver_bookings')
+            const { data: booking, error: bookingError } = await (supabase
+                .from('driver_bookings' as any)
                 .insert({
                     shipment_id: data.shipmentId,
                     driver_id: data.driverId,
@@ -361,18 +361,18 @@ export function useShipping() {
                     status: 'confirmed', // Auto-confirm, no approval needed
                 })
                 .select()
-                .single();
+                .single() as any);
 
             if (bookingError) throw bookingError;
 
             // Update shipment with driver and status
-            await supabase
-                .from('shipments')
+            await (supabase
+                .from('shipments' as any)
                 .update({
                     driver_id: data.driverId,
                     status: 'booked',
                 })
-                .eq('id', data.shipmentId);
+                .eq('id', data.shipmentId) as any);
 
             const newBooking = mapRowToBooking(booking as BookingRow, profiles);
             setBookings(prev => [newBooking, ...prev]);
@@ -390,10 +390,10 @@ export function useShipping() {
     // Update booking status
     const updateBookingStatus = async (id: string, status: BookingStatus): Promise<boolean> => {
         try {
-            const { error } = await supabase
-                .from('driver_bookings')
+            const { error } = await (supabase
+                .from('driver_bookings' as any)
                 .update({ status })
-                .eq('id', id);
+                .eq('id', id) as any);
 
             if (error) throw error;
 
@@ -410,15 +410,15 @@ export function useShipping() {
     // Get tracking history
     const getTrackingHistory = async (shipmentId: string): Promise<ShipmentTracking[]> => {
         try {
-            const { data, error } = await supabase
-                .from('shipment_tracking')
+            const { data, error } = await (supabase
+                .from('shipment_tracking' as any)
                 .select('*')
                 .eq('shipment_id', shipmentId)
-                .order('recorded_at', { ascending: true });
+                .order('recorded_at', { ascending: true }) as any);
 
             if (error) throw error;
 
-            return (data || []).map((row: TrackingRow) => mapRowToTracking(row));
+            return (data || []).map((row: any) => mapRowToTracking(row as TrackingRow));
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             console.error('Error fetching tracking:', message);
@@ -435,23 +435,23 @@ export function useShipping() {
     ): Promise<boolean> => {
         try {
             // Update shipment current location
-            await supabase
-                .from('shipments')
+            await (supabase
+                .from('shipments' as any)
                 .update({
                     current_latitude: latitude,
                     current_longitude: longitude,
                     current_location_name: locationName,
                     last_location_update: new Date().toISOString(),
                 })
-                .eq('id', shipmentId);
+                .eq('id', shipmentId) as any);
 
             // Add tracking record
-            await supabase.from('shipment_tracking').insert({
+            await (supabase.from('shipment_tracking' as any).insert({
                 shipment_id: shipmentId,
                 latitude,
                 longitude,
                 location_name: locationName,
-            });
+            }) as any);
 
             await fetchShipments();
             return true;
