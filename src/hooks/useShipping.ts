@@ -348,7 +348,7 @@ export function useShipping() {
         if (!user) return null;
 
         try {
-            // Create booking
+            // Create booking with pending acceptance
             const { data: booking, error: bookingError } = await (supabase
                 .from('driver_bookings' as any)
                 .insert({
@@ -358,27 +358,22 @@ export function useShipping() {
                     booking_date: data.bookingDate.toISOString().split('T')[0],
                     booking_time: data.bookingTime || null,
                     notes: data.notes || null,
-                    status: 'confirmed', // Auto-confirm, no approval needed
+                    status: 'pending',
+                    acceptance_status: 'pending_acceptance', // Driver needs to accept
                 })
                 .select()
                 .single() as any);
 
             if (bookingError) throw bookingError;
 
-            // Update shipment with driver and status
-            await (supabase
-                .from('shipments' as any)
-                .update({
-                    driver_id: data.driverId,
-                    status: 'booked',
-                })
-                .eq('id', data.shipmentId) as any);
+            // DO NOT update shipment yet - wait for driver acceptance
+            // Shipment will be updated when driver accepts via notification
 
             const newBooking = mapRowToBooking(booking as BookingRow, profiles);
             setBookings(prev => [newBooking, ...prev]);
             await fetchShipments();
 
-            toast.success('Driver berhasil di-booking');
+            toast.success('Permintaan booking dikirim ke driver. Menunggu konfirmasi...');
             return newBooking;
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Unknown error';
@@ -464,7 +459,10 @@ export function useShipping() {
 
     // Get available drivers (logistic division)
     const getAvailableDrivers = (): Profile[] => {
-        return profiles.filter(p => p.division === 'logistic');
+        const drivers = profiles.filter(p => p.division === 'logistic');
+        console.log('All profiles:', profiles);
+        console.log('Available drivers (logistic):', drivers);
+        return drivers;
     };
 
     // Get my shipments (as driver)

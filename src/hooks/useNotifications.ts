@@ -1,17 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { Notification } from '@/types/notifications';
 import { toast } from 'sonner';
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  activity_id: string | null;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-}
 
 export function useNotifications() {
   const { user } = useAuth();
@@ -19,7 +10,8 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchNotifications = useCallback(async () => {
+  // Fetch notifications
+  const fetchNotifications = async () => {
     if (!user) {
       setNotifications([]);
       setUnreadCount(0);
@@ -37,196 +29,242 @@ export function useNotifications() {
 
       if (error) throw error;
 
-      const notifs = (data || []) as Notification[];
+      const notifs = (data || []).map(n => ({
+        ...n,
+        created_at: new Date(n.created_at),
+        updated_at: new Date(n.updated_at),
+      }));
+
       setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.is_read).length);
+      setUnreadCount(notifs.filter(n => !n.read).length);
     } catch (error: any) {
-      console.error('Error fetching notifications:', error.message);
+      console.error('Error fetching notifications:', error);
+      toast.error('Gagal memuat notifikasi');
     } finally {
       setLoading(false);
     }
-  }, [user]);
-
-  // Check for due reminders
-  const checkReminders = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const now = new Date().toISOString();
-
-      // Find activities with reminders that are due
-      const { data: activities, error } = await supabase
-        .from('activities')
-        .select('id, customer_name, activity_type, date, reminder_at')
-        .eq('user_id', user.id)
-        .lte('reminder_at', now)
-        .not('reminder_at', 'is', null);
-
-      if (error) throw error;
-
-      if (activities && activities.length > 0) {
-        for (const activity of activities) {
-          // Check if notification already exists for this activity
-          const { data: existingNotif } = await supabase
-            .from('notifications')
-            .select('id')
-            .eq('activity_id', activity.id)
-            .eq('user_id', user.id)
-            .single();
-
-          if (!existingNotif) {
-            // Create notification
-            const activityTypeLabels: Record<string, string> = {
-              visit: 'Kunjungan',
-              call: 'Telepon',
-              email: 'Email',
-              meeting: 'Meeting',
-              other: 'Lainnya',
-              closing: 'Closing'
-            };
-
-
-            await supabase.from('notifications').insert({
-              user_id: user.id,
-              activity_id: activity.id,
-              title: `Reminder: ${activityTypeLabels[activity.activity_type] || activity.activity_type}`,
-              message: `Aktivitas dengan ${activity.customer_name} dijadwalkan hari ini.`,
-            });
-
-            // Clear the reminder_at after notification created
-            await supabase
-              .from('activities')
-              .update({ reminder_at: null })
-              .eq('id', activity.id);
-
-            // Show browser notification if permitted
-            if (Notification.permission === 'granted') {
-              new Notification(`Reminder: ${activityTypeLabels[activity.activity_type]}`, {
-                body: `Aktivitas dengan ${activity.customer_name}`,
-                icon: '/favicon.ico'
-              });
-            }
-
-            // Also show toast
-            toast.info(`Reminder: ${activity.customer_name}`, {
-              description: `${activityTypeLabels[activity.activity_type]} dijadwalkan`,
-            });
-          }
-        }
-
-        // Refresh notifications
-        fetchNotifications();
-      }
-    } catch (error: any) {
-      console.error('Error checking reminders:', error.message);
-    }
-  }, [user, fetchNotifications]);
-
-  // Request notification permission
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      await Notification.requestPermission();
-    }
   };
 
-  const markAsRead = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error: any) {
-      console.error('Error marking notification as read:', error.message);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-
-      if (error) throw error;
-
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
-    } catch (error: any) {
-      console.error('Error marking all as read:', error.message);
-    }
-  };
-
-  const deleteNotification = async (id: string) => {
-    try {
-      const notif = notifications.find(n => n.id === id);
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      if (notif && !notif.is_read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error: any) {
-      console.error('Error deleting notification:', error.message);
-    }
-  };
-
-  // Initial fetch
+  // Subscribe to real-time notifications
   useEffect(() => {
+    if (!user) return;
+
     fetchNotifications();
-    requestNotificationPermission();
-  }, [fetchNotifications]);
-
-  // Check reminders periodically (every minute)
-  useEffect(() => {
-    if (!user) return;
-
-    checkReminders();
-    const interval = setInterval(checkReminders, 60000);
-
-    return () => clearInterval(interval);
-  }, [user, checkReminders]);
-
-  // Subscribe to realtime notifications
-  useEffect(() => {
-    if (!user) return;
 
     const channel = supabase
-      .channel('notifications-changes')
+      .channel('notifications')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const newNotif = payload.new as Notification;
+          const newNotif = {
+            ...payload.new,
+            created_at: new Date(payload.new.created_at),
+            updated_at: new Date(payload.new.updated_at),
+          } as Notification;
+
           setNotifications(prev => [newNotif, ...prev]);
           setUnreadCount(prev => prev + 1);
+
+          // Show toast notification
+          toast.info(newNotif.title, {
+            description: newNotif.message,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updatedNotif = {
+            ...payload.new,
+            created_at: new Date(payload.new.created_at),
+            updated_at: new Date(payload.new.updated_at),
+          } as Notification;
+
+          setNotifications(prev =>
+            prev.map(n => (n.id === updatedNotif.id ? updatedNotif : n))
+          );
+
+          // Update unread count
+          setUnreadCount(prev => {
+            const wasUnread = !payload.old.read;
+            const isNowRead = updatedNotif.read;
+            if (wasUnread && isNowRead) return prev - 1;
+            if (!wasUnread && !isNowRead) return prev + 1;
+            return prev;
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+          if (!payload.old.read) {
+            setUnreadCount(prev => prev - 1);
+          }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [user]);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
+      toast.error('Gagal menandai notifikasi sebagai dibaca');
+    }
+  };
+
+  // Mark all as read
+  const markAllAsRead = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      toast.success('Semua notifikasi ditandai sebagai dibaca');
+    } catch (error: any) {
+      console.error('Error marking all as read:', error);
+      toast.error('Gagal menandai semua notifikasi');
+    }
+  };
+
+  // Delete notification
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      toast.success('Notifikasi dihapus');
+    } catch (error: any) {
+      console.error('Error deleting notification:', error);
+      toast.error('Gagal menghapus notifikasi');
+    }
+  };
+
+  // Accept booking
+  const acceptBooking = async (notificationId: string, bookingId: string) => {
+    try {
+      // 1. Update booking acceptance_status
+      const { error: bookingError } = await supabase
+        .from('driver_bookings')
+        .update({
+          acceptance_status: 'accepted',
+          status: 'confirmed',
+        })
+        .eq('id', bookingId);
+
+      if (bookingError) throw bookingError;
+
+      // 2. Get shipment_id from booking
+      const { data: booking, error: fetchError } = await supabase
+        .from('driver_bookings')
+        .select('shipment_id')
+        .eq('id', bookingId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 3. Update shipment status to 'booked'
+      const { error: shipmentError } = await supabase
+        .from('shipments')
+        .update({ status: 'booked' })
+        .eq('id', booking.shipment_id);
+
+      if (shipmentError) throw shipmentError;
+
+      // 4. Mark notification as action_taken
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .update({
+          read: true,
+          action_taken: true,
+        })
+        .eq('id', notificationId);
+
+      if (notifError) throw notifError;
+
+      toast.success('Booking diterima! Pengiriman telah ditugaskan kepada Anda.');
+      return true;
+    } catch (error: any) {
+      console.error('Error accepting booking:', error);
+      toast.error('Gagal menerima booking: ' + error.message);
+      return false;
+    }
+  };
+
+  // Reject booking
+  const rejectBooking = async (notificationId: string, bookingId: string, reason?: string) => {
+    try {
+      // 1. Update booking acceptance_status
+      const { error: bookingError } = await supabase
+        .from('driver_bookings')
+        .update({
+          acceptance_status: 'rejected',
+          status: 'cancelled',
+          notes: reason || 'Ditolak oleh driver',
+        })
+        .eq('id', bookingId);
+
+      if (bookingError) throw bookingError;
+
+      // 2. Mark notification as action_taken
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .update({
+          read: true,
+          action_taken: true,
+        })
+        .eq('id', notificationId);
+
+      if (notifError) throw notifError;
+
+      toast.success('Booking ditolak. Backoffice akan diberi tahu.');
+      return true;
+    } catch (error: any) {
+      console.error('Error rejecting booking:', error);
+      toast.error('Gagal menolak booking: ' + error.message);
+      return false;
+    }
+  };
 
   return {
     notifications,
@@ -235,6 +273,8 @@ export function useNotifications() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    acceptBooking,
+    rejectBooking,
     refetch: fetchNotifications,
   };
 }

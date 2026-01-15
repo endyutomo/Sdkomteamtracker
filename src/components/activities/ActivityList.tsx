@@ -128,14 +128,18 @@ export function ActivityList({ activities, allProfiles = [], onDelete, onEdit }:
       {sortedActivities.map((activity, index) => {
         const Icon = activityIcons[activity.activityType];
         const userProfile = allProfiles.find(p => p.user_id === activity.userId);
-        const division = userProfile?.division || activity.category;
+
+        // ALWAYS prioritize userProfile.division over activity.category
+        const division = userProfile?.division || activity.category || 'sales';
         const isLogistic = division === 'logistic';
         const isBackoffice = division === 'backoffice';
         const isPresales = division === 'presales';
+        const isSales = division === 'sales' || division === 'manager';
 
         const categoryLabel = isLogistic ? 'Kurir' : isBackoffice ? 'Backoffice' : isPresales ? 'Presales' : 'Sales';
         const badgeVariant = (isPresales || isLogistic || isBackoffice) ? 'secondary' : 'default';
-        const badgeClass = (isLogistic || isBackoffice) ? 'bg-pink-100 text-pink-800 border-pink-300' : '';
+        const badgeClass = isLogistic ? 'bg-purple-100 text-purple-800 border-purple-300' :
+          isBackoffice ? 'bg-pink-100 text-pink-800 border-pink-300' : '';
 
         return (
           <div
@@ -162,7 +166,7 @@ export function ActivityList({ activities, allProfiles = [], onDelete, onEdit }:
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {categoryLabel}: {activity.personName}
+                    {activity.personName}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: id })}

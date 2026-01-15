@@ -70,7 +70,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                     <div>
                       <p className="font-medium text-foreground">{activity.customerName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {activity.personName} • {activityLabels[activity.activityType] || activity.activityType} • {activity.category === 'presales' ? 'Presales' : 'Sales'}
+                        {activity.personName} • {activityLabels[activity.activityType] || activity.activityType}
                       </p>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">

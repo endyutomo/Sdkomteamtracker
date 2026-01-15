@@ -70,17 +70,29 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
 
   const [teamDialog, setTeamDialog] = useState(false);
 
-  // Filter sales activities - exclude logistic and backoffice categories
+  // Filter sales activities - exclude logistic and backoffice categories AND users
   const logisticUserIds = allProfiles.filter(p => p.division === 'logistic').map(p => p.user_id);
   const backofficeUserIds = allProfiles.filter(p => p.division === 'backoffice').map(p => p.user_id);
-  const salesActivities = activities.filter(a => (a.category === 'sales' || !a.category) && !logisticUserIds.includes(a.userId) && !backofficeUserIds.includes(a.userId));
+
+  // Sales activities: category='sales' OR (no category AND not logistic/backoffice user)
+  const salesActivities = activities.filter(a =>
+    (a.category === 'sales') ||
+    (!a.category && !logisticUserIds.includes(a.userId) && !backofficeUserIds.includes(a.userId))
+  );
+
   const presalesActivities = activities.filter(a => a.category === 'presales');
 
   // Logistic activities - filter by category 'logistic' OR by logistic user ids for backward compatibility
-  const logisticActivities = activities.filter(a => a.category === 'logistic' || logisticUserIds.includes(a.userId));
+  const logisticActivities = activities.filter(a =>
+    a.category === 'logistic' ||
+    (!a.category && logisticUserIds.includes(a.userId))
+  );
 
   // Backoffice activities - filter by category 'backoffice' OR by backoffice user ids for backward compatibility
-  const backofficeActivities = activities.filter(a => a.category === 'backoffice' || backofficeUserIds.includes(a.userId));
+  const backofficeActivities = activities.filter(a =>
+    a.category === 'backoffice' ||
+    (!a.category && backofficeUserIds.includes(a.userId))
+  );
 
   const todaySalesActivities = salesActivities.filter(a => isToday(new Date(a.date)));
   const todayPresalesActivities = presalesActivities.filter(a => isToday(new Date(a.date)));
