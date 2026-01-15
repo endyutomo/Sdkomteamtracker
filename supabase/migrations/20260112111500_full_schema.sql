@@ -1,9 +1,23 @@
 -- 1. BASE ACTIVITIES SCHEMA
-CREATE TYPE public.person_role AS ENUM ('sales', 'presales', 'other');
-CREATE TYPE public.activity_type AS ENUM ('visit', 'call', 'email', 'meeting', 'other');
-CREATE TYPE public.activity_category AS ENUM ('sales', 'presales');
+DO $$ BEGIN
+  CREATE TYPE public.person_role AS ENUM ('sales', 'presales', 'other');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TABLE public.persons (
+DO $$ BEGIN
+  CREATE TYPE public.activity_type AS ENUM ('visit', 'call', 'email', 'meeting', 'other');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE public.activity_category AS ENUM ('sales', 'presales');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.persons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -11,7 +25,7 @@ CREATE TABLE public.persons (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE public.activities (
+CREATE TABLE IF NOT EXISTS public.activities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -39,16 +53,25 @@ CREATE POLICY "Users can create their own activities" ON public.activities FOR I
 CREATE POLICY "Users can update their own activities" ON public.activities FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own activities" ON public.activities FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
-CREATE INDEX idx_persons_user_id ON public.persons(user_id);
-CREATE INDEX idx_activities_user_id ON public.activities(user_id);
-CREATE INDEX idx_activities_date ON public.activities(date);
-CREATE INDEX idx_activities_person_id ON public.activities(person_id);
+CREATE INDEX IF NOT EXISTS idx_persons_user_id ON public.persons(user_id);
+CREATE INDEX IF NOT EXISTS idx_activities_user_id ON public.activities(user_id);
+CREATE INDEX IF NOT EXISTS idx_activities_date ON public.activities(date);
+CREATE INDEX IF NOT EXISTS idx_activities_person_id ON public.activities(person_id);
 
 -- 2. BASE PROFILES SCHEMA
-CREATE TYPE public.division_type AS ENUM ('sales', 'presales', 'manager');
-CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+DO $$ BEGIN
+  CREATE TYPE public.division_type AS ENUM ('sales', 'presales', 'manager');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TABLE public.profiles (
+DO $$ BEGIN
+  CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
   name text NOT NULL,
@@ -58,7 +81,7 @@ CREATE TABLE public.profiles (
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
-CREATE TABLE public.user_roles (
+CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   role app_role NOT NULL DEFAULT 'user',
@@ -108,7 +131,7 @@ $$ LANGUAGE plpgsql SET search_path = public;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 3. BASE SALES SCHEMA
-CREATE TABLE public.sales_targets (
+CREATE TABLE IF NOT EXISTS public.sales_targets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   period_type TEXT NOT NULL CHECK (period_type IN ('monthly', 'quarterly', 'yearly')),
@@ -121,7 +144,7 @@ CREATE TABLE public.sales_targets (
   UNIQUE(user_id, period_type, period_year, period_month, period_quarter)
 );
 
-CREATE TABLE public.sales_records (
+CREATE TABLE IF NOT EXISTS public.sales_records (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   customer_name TEXT NOT NULL,
