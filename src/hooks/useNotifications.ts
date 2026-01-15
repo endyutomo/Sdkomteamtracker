@@ -45,6 +45,18 @@ export function useNotifications() {
     }
   };
 
+  // Play notification sound
+  const playNotificationSound = () => {
+    try {
+      // Menggunakan suara notifikasi yang kencang dan jelas
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.volume = 1.0; // Volume maksimal
+      audio.play().catch(e => console.log('Audio play blocked by browser:', e));
+    } catch (error) {
+      console.error('Error playing sound:', error);
+    }
+  };
+
   // Subscribe to real-time notifications
   useEffect(() => {
     if (!user) return;
@@ -70,6 +82,9 @@ export function useNotifications() {
 
           setNotifications(prev => [newNotif, ...prev]);
           setUnreadCount(prev => prev + 1);
+
+          // Mainkan suara kencang
+          playNotificationSound();
 
           // Show toast notification
           toast.info(newNotif.title, {
@@ -194,22 +209,31 @@ export function useNotifications() {
 
       if (bookingError) throw bookingError;
 
-      // 2. Get shipment_id from booking
+      // 2. Get shipment_id and driver_id from booking
       const { data: booking, error: fetchError } = await supabase
         .from('driver_bookings')
-        .select('shipment_id')
+        .select('shipment_id, driver_id')
         .eq('id', bookingId)
         .single();
 
       if (fetchError) throw fetchError;
 
-      // 3. Update shipment status to 'booked'
+      // 3. Update shipment status and assign driver
       const { error: shipmentError } = await supabase
         .from('shipments')
-        .update({ status: 'booked' })
+        .update({
+          status: 'booked',
+          driver_id: booking.driver_id,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', booking.shipment_id);
 
-      if (shipmentError) throw shipmentError;
+      if (shipmentError) {
+        console.error('❌ Shipment update failed:', shipmentError);
+        throw shipmentError;
+      }
+
+      console.log('✅ Shipment status updated to booked');
 
       // 4. Mark notification as action_taken
       const { error: notifError } = await supabase
@@ -217,16 +241,28 @@ export function useNotifications() {
         .update({
           read: true,
           action_taken: true,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', notificationId);
 
-      if (notifError) throw notifError;
+      if (notifError) {
+        console.error('❌ Notification update failed:', notifError);
+        throw notifError;
+      }
+
+      console.log('✅ Notification marked as taken');
 
       toast.success('Booking diterima! Pengiriman telah ditugaskan kepada Anda.');
       return true;
     } catch (error: any) {
-      console.error('Error accepting booking:', error);
-      toast.error('Gagal menerima booking: ' + error.message);
+      console.error('❌ Error accepting booking:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      toast.error('Gagal menerima booking: ' + (error.message || 'Unknown error'));
       return false;
     }
   };

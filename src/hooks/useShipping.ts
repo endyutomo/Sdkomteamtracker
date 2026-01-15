@@ -137,8 +137,15 @@ export function useShipping() {
 
     // Fetch all profiles for joining names
     const fetchProfiles = useCallback(async () => {
-        const { data } = await supabase.from('profiles').select('*');
-        if (data) setProfiles(data as Profile[]);
+        console.log('🔄 Fetching profiles...');
+        const { data, error } = await supabase.from('profiles').select('*');
+        if (error) {
+            console.error('❌ Error fetching profiles:', error);
+        } else {
+            console.log('✅ Profiles fetched:', data?.length, 'profiles');
+            console.log('📋 Profiles data:', data);
+            if (data) setProfiles(data as Profile[]);
+        }
     }, []);
 
     // Fetch shipments
@@ -184,6 +191,38 @@ export function useShipping() {
             console.error('Error fetching bookings:', message);
         }
     }, [user, profiles]);
+
+    // Real-time subscription
+    useEffect(() => {
+        if (!user) return;
+
+        const shipmentsChannel = supabase
+            .channel('shipments-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'shipments' },
+                () => {
+                    fetchShipments();
+                }
+            )
+            .subscribe();
+
+        const bookingsChannel = supabase
+            .channel('bookings-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'driver_bookings' },
+                () => {
+                    fetchBookings();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(shipmentsChannel);
+            supabase.removeChannel(bookingsChannel);
+        };
+    }, [user, fetchShipments, fetchBookings]);
 
     // Initial fetch
     useEffect(() => {
@@ -375,9 +414,27 @@ export function useShipping() {
 
             toast.success('Permintaan booking dikirim ke driver. Menunggu konfirmasi...');
             return newBooking;
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            toast.error('Gagal booking driver: ' + message);
+        } catch (error: any) {
+            console.error('❌ Booking error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+            });
+
+            let errorMessage = 'Gagal booking driver: ';
+            if (error.message) {
+                errorMessage += error.message;
+            }
+            if (error.details) {
+                errorMessage += ` (Details: ${error.details})`;
+            }
+            if (error.hint) {
+                errorMessage += ` (Hint: ${error.hint})`;
+            }
+
+            toast.error(errorMessage);
             return null;
         }
     };

@@ -64,6 +64,28 @@ export function ShippingDashboard({ userDivision, isManager }: ShippingDashboard
     const isDriver = userDivision === 'logistic';
     const myAssignedShipments = getMyAssignedShipments();
 
+    // Sync active dialog states with latest shipments data (for real-time updates)
+    useEffect(() => {
+        if (trackingShipment) {
+            const updated = shipments.find(s => s.id === trackingShipment.id);
+            if (updated && JSON.stringify(updated) !== JSON.stringify(trackingShipment)) {
+                setTrackingShipment(updated);
+            }
+        }
+        if (editShipment) {
+            const updated = shipments.find(s => s.id === editShipment.id);
+            if (updated && JSON.stringify(updated) !== JSON.stringify(editShipment)) {
+                setEditShipment(updated);
+            }
+        }
+        if (bookingShipment) {
+            const updated = shipments.find(s => s.id === bookingShipment.id);
+            if (updated && JSON.stringify(updated) !== JSON.stringify(bookingShipment)) {
+                setBookingShipment(updated);
+            }
+        }
+    }, [shipments, trackingShipment, editShipment, bookingShipment]);
+
     // Filter shipments
     const filteredShipments = shipments.filter((s) => {
         const matchesSearch =

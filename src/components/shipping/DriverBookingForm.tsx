@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import {
@@ -50,6 +50,15 @@ export function DriverBookingForm({
     const [bookingDate, setBookingDate] = useState<Date | undefined>(new Date());
     const [bookingTime, setBookingTime] = useState('');
     const [notes, setNotes] = useState('');
+
+    // Debug: Log available drivers when dialog opens
+    useEffect(() => {
+        if (open) {
+            console.log('🚗 DriverBookingForm opened');
+            console.log('📋 Available drivers received:', availableDrivers);
+            console.log('📊 Number of drivers:', availableDrivers.length);
+        }
+    }, [open, availableDrivers]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
