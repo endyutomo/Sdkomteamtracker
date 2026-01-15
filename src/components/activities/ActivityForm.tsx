@@ -54,6 +54,8 @@ const activityTypes: { value: ActivityType; label: string }[] = [
   { value: 'call', label: 'Telepon' },
   { value: 'email', label: 'Email' },
   { value: 'meeting', label: 'Meeting' },
+  { value: 'standby', label: 'Standby' },
+  { value: 'pengiriman', label: 'Pengiriman' },
   { value: 'other', label: 'Lainnya' },
 ];
 
@@ -178,24 +180,22 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
 
   // Set current user as default selection when opening form
   useEffect(() => {
-    if (open && !editActivity && currentProfile) {
-      // Auto-select current user and set category based on their division
-      if (currentProfile.division === 'sales') {
-        setCategory('sales');
-        setPersonId(currentProfile.id);
-      } else if (currentProfile.division === 'presales') {
-        setCategory('presales');
-        setPersonId(currentProfile.id);
-      } else if (currentProfile.division === 'manager') {
-        // Manager can choose, default to sales category and their own ID
-        setCategory('sales');
-        setPersonId(currentProfile.id);
-      } else if (currentProfile.division === 'backoffice' || currentProfile.division === 'logistic') {
-        // Backoffice and Logistic are locked to sales category and their own ID
-        setCategory('sales');
-        setPersonId(currentProfile.id);
-      }
+    if (open && currentProfile) {
+      // Always auto-select current user ID for all divisions
+      setPersonId(currentProfile.id);
 
+      // Set category based on their division (only for new activities)
+      if (!editActivity) {
+        if (currentProfile.division === 'presales') {
+          setCategory('presales');
+        } else if (currentProfile.division === 'logistic') {
+          setCategory('logistic');
+        } else if (currentProfile.division === 'backoffice') {
+          setCategory('backoffice');
+        } else {
+          setCategory('sales');
+        }
+      }
     }
   }, [open, editActivity, currentProfile]);
 
@@ -312,8 +312,14 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!personId) {
-      toast.error(`Pilih ${category === 'sales' ? 'sales' : 'presales'} person`);
+    if (!personId && currentProfile) {
+      // This should not happen as personId is auto-set, but just in case
+      setPersonId(currentProfile.id);
+    }
+
+    const finalPersonId = personId || currentProfile?.id || '';
+    if (!finalPersonId) {
+      toast.error('Profil pengguna tidak ditemukan. Silakan login ulang.');
       return;
     }
 
@@ -330,8 +336,6 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       return;
     }
 
-    // Location is mandatory for work activities, WFH, and permission
-    // But optional for sick and time_off (they might be at home/hospital)
     const locationOptionalTypes = ['sick', 'time_off'];
     if (!locationOptionalTypes.includes(activityType)) {
       if (!location || !location.locationName) {
@@ -340,7 +344,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
       }
     }
 
-    const selectedOption = availableOptions.find(p => p.id === personId);
+    // Use currentProfile directly for personName
+    const selectedPersonName = currentProfile?.name || '';
 
     let collaboration: Collaboration | undefined;
     if (hasCollaboration && collaborators.length > 0) {
@@ -365,8 +370,8 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
     onSubmit({
       date,
       category,
-      personId,
-      personName: selectedOption?.name || '',
+      personId: finalPersonId,
+      personName: selectedPersonName,
       activityType,
       customerName: finalCustomerName,
       project: project.trim() || undefined,
@@ -503,58 +508,18 @@ export function ActivityForm({ open, onClose, onSubmit, persons, allProfiles = [
             )}
           </div>
 
-          {/* Person - Shared but label consolidated */}
+          {/* Person - Always show current user (read-only for all accounts) */}
           <div className="space-y-2">
-            <Label>Identitas Pelapor (Nama & Divisi)</Label>            {/* Show dropdown only for managers/superadmins, otherwise show read-only */}
-            {(currentProfile?.division === 'manager' || (currentProfile && isUserSuperadmin(currentProfile.user_id))) ? (
-              <Select value={personId} onValueChange={(val) => {
-                setPersonId(val);
-                const selected = allAvailableOptions.find(o => o.id === val);
-                if (selected) {
-                  setCategory(selected.division === 'presales' ? 'presales' : 'sales');
-                }
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih anggota tim" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableOptions.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      Belum ada anggota terdaftar.
-                    </div>
-                  ) : (
-                    availableOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center gap-2">
-                            {option.name}
-                            {option.user_id && isUserSuperadmin(option.user_id) && (
-                              <Shield className="h-3 w-3 text-amber-500" />
-                            )}
-                          </div>
-                          <Badge variant="outline" className="text-[10px] ml-2 opacity-70">
-                            {option.division === 'sales' ? 'Sales' : option.division === 'presales' ? 'Presales' : option.division === 'backoffice' ? 'Backoffice' : option.division === 'logistic' ? 'Logistik' : option.division}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={currentProfile ? `${currentProfile.name} (${currentProfile.division === 'sales' ? 'Sales' : currentProfile.division === 'presales' ? 'Presales' : currentProfile.division === 'backoffice' ? 'Backoffice' : currentProfile.division === 'logistic' ? 'Logistik' : currentProfile.division})` : ''}
-                  disabled
-                  className="bg-muted cursor-not-allowed"
-                />
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              </div>
-            )}
-            {currentProfile && currentProfile.division !== 'manager' && !isUserSuperadmin(currentProfile.user_id) && (
-              <p className="text-[10px] text-muted-foreground">Nama dan divisi otomatis diisi berdasarkan akun Anda.</p>
-            )}
-
+            <Label>Identitas Pelapor (Nama & Divisi)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={currentProfile ? `${currentProfile.name} (${currentProfile.division === 'sales' ? 'Sales' : currentProfile.division === 'presales' ? 'Presales' : currentProfile.division === 'backoffice' ? 'Backoffice' : currentProfile.division === 'logistic' ? 'Logistik' : currentProfile.division === 'manager' ? 'Manager' : currentProfile.division})` : ''}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-[10px] text-muted-foreground">Nama dan divisi otomatis diisi berdasarkan akun Anda.</p>
           </div>
 
 

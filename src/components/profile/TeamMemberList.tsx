@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface TeamMemberListProps {
   profiles: Profile[];
   isManager: boolean;
+  isSuperadmin: boolean;
   onUpdate: (id: string, updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => void;
   onDelete: (id: string) => void;
 }
@@ -29,7 +30,7 @@ const divisionConfig: Record<DivisionType, { label: string; color: string; icon:
   logistic: { label: 'Logistik/Driver', color: 'bg-teal-100 text-teal-800', icon: Truck },
 };
 
-export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: TeamMemberListProps) {
+export function TeamMemberList({ profiles, isManager, isSuperadmin, onUpdate, onDelete }: TeamMemberListProps) {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [editName, setEditName] = useState('');
   const [editJabatan, setEditJabatan] = useState('');
@@ -147,7 +148,7 @@ export function TeamMemberList({ profiles, isManager, onUpdate, onDelete }: Team
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className={config.color}>{config.label}</Badge>
-                        {isManager && (
+                        {(isManager || isSuperadmin) && (
                           <>
                             <Button
                               variant="ghost"

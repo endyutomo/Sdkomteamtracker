@@ -7,7 +7,7 @@ export interface Person {
   createdAt: Date;
 }
 
-export type ActivityType = 'visit' | 'call' | 'email' | 'meeting' | 'other' | 'sick' | 'permission' | 'time_off' | 'wfh' | 'closing';
+export type ActivityType = 'visit' | 'call' | 'email' | 'meeting' | 'other' | 'sick' | 'permission' | 'time_off' | 'wfh' | 'closing' | 'standby' | 'pengiriman';
 
 export interface CollaborationPerson {
   personId?: string;
@@ -23,7 +23,7 @@ export interface Collaboration {
   collaborators?: CollaborationPerson[];
 }
 
-export type ActivityCategory = 'sales' | 'presales';
+export type ActivityCategory = 'sales' | 'presales' | 'logistic' | 'backoffice';
 
 export interface DailyActivity {
   id: string;

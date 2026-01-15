@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface ActivityListProps {
   activities: DailyActivity[];
+  allProfiles?: Profile[];
   onDelete: (id: string) => void;
   onEdit: (activity: DailyActivity) => void;
 }
@@ -66,7 +67,7 @@ const activityColors = {
   wfh: 'bg-blue-100 text-blue-600 border-blue-200',
 };
 
-export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps) {
+export function ActivityList({ activities, allProfiles = [], onDelete, onEdit }: ActivityListProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const { profile, isManager, isSuperadmin } = useProfile();
 
@@ -126,6 +127,16 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
     <div className="space-y-4">
       {sortedActivities.map((activity, index) => {
         const Icon = activityIcons[activity.activityType];
+        const userProfile = allProfiles.find(p => p.user_id === activity.userId);
+        const division = userProfile?.division || activity.category;
+        const isLogistic = division === 'logistic';
+        const isBackoffice = division === 'backoffice';
+        const isPresales = division === 'presales';
+
+        const categoryLabel = isLogistic ? 'Kurir' : isBackoffice ? 'Backoffice' : isPresales ? 'Presales' : 'Sales';
+        const badgeVariant = (isPresales || isLogistic || isBackoffice) ? 'secondary' : 'default';
+        const badgeClass = (isLogistic || isBackoffice) ? 'bg-pink-100 text-pink-800 border-pink-300' : '';
+
         return (
           <div
             key={activity.id}
@@ -143,12 +154,15 @@ export function ActivityList({ activities, onDelete, onEdit }: ActivityListProps
                     <Badge variant="outline" className="text-xs">
                       {activityLabels[activity.activityType]}
                     </Badge>
-                    <Badge variant={activity.category === 'presales' ? 'secondary' : 'default'} className="text-xs">
-                      {activity.category === 'presales' ? 'Presales' : 'Sales'}
+                    <Badge
+                      variant={(isPresales || isLogistic || isBackoffice) ? 'secondary' : 'default'}
+                      className={`text-xs ${(isLogistic || isBackoffice) ? 'bg-pink-100 text-pink-800 border-pink-300' : ''}`}
+                    >
+                      {categoryLabel}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {activity.category === 'presales' ? 'Presales' : 'Sales'}: {activity.personName}
+                    {categoryLabel}: {activity.personName}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: id })}

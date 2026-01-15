@@ -35,7 +35,9 @@ import {
   Search,
   X,
   CalendarIcon,
-  AlertCircle
+  AlertCircle,
+  Truck,
+  Building2
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -49,10 +51,20 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useProfile } from '@/hooks/useProfile';
+import { useExportImport } from '@/hooks/useExportImport';
+import { useActivities } from '@/hooks/useActivities';
+import { ImportActivitiesDialog } from './ImportActivitiesDialog';
 import { MissingActivitiesReport } from './MissingActivitiesReport';
 import { TeamActivityStats } from './TeamActivityStats';
-import { useProfile } from '@/hooks/useProfile';
 import { startOfWeek, endOfWeek } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Upload, FileJson, FileText } from 'lucide-react';
 
 interface ActivityReportProps {
   activities: DailyActivity[];
@@ -66,6 +78,8 @@ const activityTypeLabels: Record<string, string> = {
   meeting: 'Meeting',
   other: 'Lainnya',
   closing: 'Closing',
+  standby: 'Standby',
+  pengiriman: 'Pengiriman',
 };
 
 const activityTypeIcons: Record<string, React.ReactNode> = {
@@ -75,6 +89,8 @@ const activityTypeIcons: Record<string, React.ReactNode> = {
   meeting: <Users className="h-4 w-4" />,
   other: <Calendar className="h-4 w-4" />,
   closing: <Briefcase className="h-4 w-4" />,
+  standby: <Calendar className="h-4 w-4" />,
+  pengiriman: <Truck className="h-4 w-4" />,
 };
 
 // Generate month options
@@ -101,7 +117,9 @@ const years = Array.from({ length: 5 }, (_, i) => ({
 }));
 
 export function ActivityReport({ activities, allProfiles }: ActivityReportProps) {
-  const { isManager } = useProfile();
+  const { isManager, isSuperadmin } = useProfile();
+  const { exportToXLSX, exportToCSV, exportToJSON } = useExportImport();
+  const { importActivities } = useActivities();
   const [selectedActivity, setSelectedActivity] = useState<DailyActivity | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'date' | 'week' | 'month' | 'year'>('all');
@@ -109,6 +127,9 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [activityTypeFilter, setActivityTypeFilter] = useState<string>('all');
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const canImport = isManager || isSuperadmin;
 
   // Filter activities based on search, activity type, and date filters
   const filteredActivities = useMemo(() => {
@@ -159,8 +180,12 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   }, [activities, searchQuery, filterType, selectedDate, selectedMonth, selectedYear, activityTypeFilter]);
 
   // Group activities by division
-  const salesActivities = filteredActivities.filter(a => a.category === 'sales' || !a.category);
+  const logisticUserIds = allProfiles.filter(p => p.division === 'logistic').map(p => p.user_id);
+  const backofficeUserIds = allProfiles.filter(p => p.division === 'backoffice').map(p => p.user_id);
+  const salesActivities = filteredActivities.filter(a => (a.category === 'sales' || !a.category) && !logisticUserIds.includes(a.userId) && !backofficeUserIds.includes(a.userId));
   const presalesActivities = filteredActivities.filter(a => a.category === 'presales');
+  const logisticActivities = filteredActivities.filter(a => a.category === 'logistic' || logisticUserIds.includes(a.userId));
+  const backofficeActivities = filteredActivities.filter(a => a.category === 'backoffice' || backofficeUserIds.includes(a.userId));
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -172,19 +197,23 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
   };
 
   // Export to Excel
-  const exportToExcel = (division: 'all' | 'sales' | 'presales') => {
+  const exportToExcel = (division: 'all' | 'sales' | 'presales' | 'logistic' | 'backoffice') => {
     let dataToExport = filteredActivities;
 
     if (division === 'sales') {
       dataToExport = salesActivities;
     } else if (division === 'presales') {
       dataToExport = presalesActivities;
+    } else if (division === 'logistic') {
+      dataToExport = logisticActivities;
+    } else if (division === 'backoffice') {
+      dataToExport = backofficeActivities;
     }
 
     const exportData = dataToExport.map(activity => ({
       'Tanggal': format(new Date(activity.date), 'dd/MM/yyyy', { locale: id }),
       'Waktu Input': format(new Date(activity.createdAt), 'dd/MM/yyyy HH:mm', { locale: id }),
-      'Kategori': activity.category === 'sales' ? 'Sales' : 'Presales',
+      'Kategori': activity.category === 'sales' ? 'Sales' : activity.category === 'presales' ? 'Presales' : activity.category === 'logistic' ? 'Kurir' : activity.category === 'backoffice' ? 'Backoffice' : 'Sales',
       'Nama Person': activity.personName,
       'Tipe Aktivitas': activityTypeLabels[activity.activityType] || activity.activityType,
       'Nama Customer': activity.customerName,
@@ -221,14 +250,14 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant={division === 'sales' ? 'default' : 'secondary'}>
+          <Badge variant={division === 'sales' ? 'default' : division === 'logistic' ? 'outline' : 'secondary'}>
             {activityList.length} aktivitas
           </Badge>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportToExcel(division as 'sales' | 'presales')}
+          onClick={() => exportToExcel(division as 'sales' | 'presales' | 'logistic' | 'backoffice')}
           className="gap-2"
           disabled={activityList.length === 0}
         >
@@ -317,15 +346,94 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
             Laporan aktivitas berdasarkan divisi
           </p>
         </div>
-        <Button
-          onClick={() => exportToExcel('all')}
-          className="gap-2"
-          disabled={filteredActivities.length === 0}
-        >
-          <Download className="h-4 w-4" />
-          Export Semua Data
-        </Button>
+        <div className="flex gap-2">
+          {canImport && (
+            <Button
+              variant="outline"
+              onClick={() => setImportDialogOpen(true)}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="gap-2"
+                disabled={filteredActivities.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {
+                const exportData = filteredActivities.map(activity => ({
+                  'Tanggal': format(new Date(activity.date), 'dd/MM/yyyy', { locale: id }),
+                  'Kategori': activity.category === 'sales' ? 'Sales' : activity.category === 'presales' ? 'Presales' : activity.category === 'logistic' ? 'Kurir' : 'Backoffice',
+                  'Nama Person': activity.personName,
+                  'Tipe Aktivitas': activityTypeLabels[activity.activityType] || activity.activityType,
+                  'Nama Customer': activity.customerName,
+                  'Project': activity.project || '-',
+                  'Opportunity': activity.opportunity || '-',
+                  'Catatan': activity.notes || '-',
+                  'Nama Lokasi': activity.locationName || '-',
+                }));
+                exportToXLSX(exportData, 'aktivitas', 'Aktivitas');
+              }}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const exportData = filteredActivities.map(activity => ({
+                  'Tanggal': format(new Date(activity.date), 'dd/MM/yyyy', { locale: id }),
+                  'Kategori': activity.category === 'sales' ? 'Sales' : activity.category === 'presales' ? 'Presales' : activity.category === 'logistic' ? 'Kurir' : 'Backoffice',
+                  'Nama Person': activity.personName,
+                  'Tipe Aktivitas': activityTypeLabels[activity.activityType] || activity.activityType,
+                  'Nama Customer': activity.customerName,
+                  'Project': activity.project || '-',
+                  'Opportunity': activity.opportunity || '-',
+                  'Catatan': activity.notes || '-',
+                  'Nama Lokasi': activity.locationName || '-',
+                }));
+                exportToCSV(exportData, 'aktivitas');
+              }}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const exportData = filteredActivities.map(activity => ({
+                  date: format(new Date(activity.date), 'yyyy-MM-dd'),
+                  category: activity.category,
+                  personId: activity.personId,
+                  personName: activity.personName,
+                  activityType: activity.activityType,
+                  customerName: activity.customerName,
+                  project: activity.project,
+                  opportunity: activity.opportunity,
+                  notes: activity.notes,
+                  locationName: activity.locationName,
+                  latitude: activity.latitude,
+                  longitude: activity.longitude,
+                }));
+                exportToJSON(exportData, 'aktivitas');
+              }}>
+                <FileJson className="h-4 w-4 mr-2" />
+                Export JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      {/* Import Dialog */}
+      <ImportActivitiesDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={importActivities}
+        existingActivities={activities}
+      />
 
       {/* Team Activity Stats - Visible To All */}
       <TeamActivityStats
@@ -536,7 +644,7 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -561,10 +669,34 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
             <p className="text-sm text-muted-foreground">aktivitas</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Truck className="h-5 w-5 text-green-500" />
+              Total Kurir
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{logisticActivities.length}</div>
+            <p className="text-sm text-muted-foreground">aktivitas</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-orange-500" />
+              Total Backoffice
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{backofficeActivities.length}</div>
+            <p className="text-sm text-muted-foreground">aktivitas</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="sales" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="sales" className="gap-2">
             <Briefcase className="h-4 w-4" />
             Sales
@@ -573,12 +705,26 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
             <Users className="h-4 w-4" />
             Presales
           </TabsTrigger>
+          <TabsTrigger value="logistic" className="gap-2">
+            <Truck className="h-4 w-4" />
+            Kurir
+          </TabsTrigger>
+          <TabsTrigger value="backoffice" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            Backoffice
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="sales" className="mt-4">
           {renderActivityTable(salesActivities, 'sales')}
         </TabsContent>
         <TabsContent value="presales" className="mt-4">
           {renderActivityTable(presalesActivities, 'presales')}
+        </TabsContent>
+        <TabsContent value="logistic" className="mt-4">
+          {renderActivityTable(logisticActivities, 'logistic')}
+        </TabsContent>
+        <TabsContent value="backoffice" className="mt-4">
+          {renderActivityTable(backofficeActivities, 'backoffice')}
         </TabsContent>
       </Tabs>
 
@@ -606,8 +752,20 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Kategori</p>
-                  <Badge variant={selectedActivity.category === 'sales' ? 'default' : 'secondary'}>
-                    {selectedActivity.category === 'sales' ? 'Sales' : 'Presales'}
+                  <Badge variant={
+                    logisticUserIds.includes(selectedActivity.userId) || selectedActivity.category === 'logistic' ? 'outline' :
+                      backofficeUserIds.includes(selectedActivity.userId) || selectedActivity.category === 'backoffice' ? 'outline' :
+                        selectedActivity.category === 'sales' ? 'default' : 'secondary'
+                  } className={
+                    (logisticUserIds.includes(selectedActivity.userId) || selectedActivity.category === 'logistic' ||
+                      backofficeUserIds.includes(selectedActivity.userId) || selectedActivity.category === 'backoffice')
+                      ? 'bg-pink-100 text-pink-800 border-pink-300' : ''
+                  }>
+                    {logisticUserIds.includes(selectedActivity.userId) ? 'Kurir' :
+                      backofficeUserIds.includes(selectedActivity.userId) ? 'Backoffice' :
+                        selectedActivity.category === 'presales' ? 'Presales' :
+                          selectedActivity.category === 'logistic' ? 'Kurir' :
+                            selectedActivity.category === 'backoffice' ? 'Backoffice' : 'Sales'}
                   </Badge>
                 </div>
               </div>

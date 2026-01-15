@@ -219,6 +219,7 @@ const Index = () => {
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
                 isManager={isManager}
+                isSuperadmin={isSuperadmin}
                 currentUserId={user?.id}
                 currentDivision={profile.division}
                 currentUserName={profile.name}
@@ -319,6 +320,7 @@ const Index = () => {
                   <TabsContent value="list">
                     <ActivityList
                       activities={filteredActivities}
+                      allProfiles={allProfiles}
                       onDelete={handleDeleteActivity}
                       onEdit={handleEditActivity}
                     />
@@ -393,6 +395,7 @@ const Index = () => {
                     p.name.toLowerCase().includes(searchQuery.toLowerCase())
                   )}
                   isManager={isManager}
+                  isSuperadmin={isSuperadmin}
                   onUpdate={updateProfile}
                   onDelete={deleteProfile}
                 />

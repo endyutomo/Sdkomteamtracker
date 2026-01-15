@@ -194,10 +194,10 @@ export function MissingActivitiesCard({
           <Badge variant="secondary" className="text-xs">
             Presales: {presalesMissing.length}
           </Badge>
-          <Badge variant="outline" className="text-xs bg-blue-50">
+          <Badge variant="outline" className="text-xs bg-pink-100 text-pink-800 border-pink-300">
             Logistik: {logisticMissing.length}
           </Badge>
-          <Badge variant="outline" className="text-xs bg-purple-50">
+          <Badge variant="outline" className="text-xs bg-pink-100 text-pink-800 border-pink-300">
             Backoffice: {backofficeMissing.length}
           </Badge>
         </div>
@@ -245,7 +245,10 @@ export function MissingActivitiesCard({
                         <div className="flex items-center gap-2">
                           <User className="h-3 w-3 text-muted-foreground" />
                           <span className="font-medium">{item.profileName}</span>
-                          <Badge variant={item.division === "sales" ? "default" : "secondary"} className="text-xs h-5">
+                          <Badge
+                            variant={item.division === "sales" ? "default" : item.division === "presales" ? "secondary" : "outline"}
+                            className={`text-xs h-5 ${(item.division === "logistic" || item.division === "backoffice") ? "bg-pink-100 text-pink-800 border-pink-300" : ""}`}
+                          >
                             {item.division}
                           </Badge>
                         </div>

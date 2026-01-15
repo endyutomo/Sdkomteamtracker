@@ -25,6 +25,7 @@ interface DashboardProps {
   currentDivision?: string;
   currentUserName?: string;
   onAddActivity?: () => void;
+  isSuperadmin?: boolean;
 }
 
 function LogoImage({ src, alt }: { src: string; alt: string }) {
@@ -60,29 +61,36 @@ function LogoImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false, currentUserId, currentDivision, currentUserName, onAddActivity }: DashboardProps) {
+export function Dashboard({ activities, persons, allProfiles, companySettings, onOpenCompanySettings, onRefresh, isRefreshing, isManager = false, isSuperadmin = false, currentUserId, currentDivision, currentUserName, onAddActivity }: DashboardProps) {
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     title: string;
-    filterType?: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic';
+    filterType?: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic' | 'backoffice';
   }>({ open: false, title: '' });
 
   const [teamDialog, setTeamDialog] = useState(false);
 
-  const salesActivities = activities.filter(a => a.category === 'sales' || !a.category);
-  const presalesActivities = activities.filter(a => a.category === 'presales');
-  
-  // Get logistic user IDs from profiles
+  // Filter sales activities - exclude logistic and backoffice categories
   const logisticUserIds = allProfiles.filter(p => p.division === 'logistic').map(p => p.user_id);
-  const logisticActivities = activities.filter(a => logisticUserIds.includes(a.userId));
+  const backofficeUserIds = allProfiles.filter(p => p.division === 'backoffice').map(p => p.user_id);
+  const salesActivities = activities.filter(a => (a.category === 'sales' || !a.category) && !logisticUserIds.includes(a.userId) && !backofficeUserIds.includes(a.userId));
+  const presalesActivities = activities.filter(a => a.category === 'presales');
+
+  // Logistic activities - filter by category 'logistic' OR by logistic user ids for backward compatibility
+  const logisticActivities = activities.filter(a => a.category === 'logistic' || logisticUserIds.includes(a.userId));
+
+  // Backoffice activities - filter by category 'backoffice' OR by backoffice user ids for backward compatibility
+  const backofficeActivities = activities.filter(a => a.category === 'backoffice' || backofficeUserIds.includes(a.userId));
 
   const todaySalesActivities = salesActivities.filter(a => isToday(new Date(a.date)));
   const todayPresalesActivities = presalesActivities.filter(a => isToday(new Date(a.date)));
   const todayLogisticActivities = logisticActivities.filter(a => isToday(new Date(a.date)));
+  const todayBackofficeActivities = backofficeActivities.filter(a => isToday(new Date(a.date)));
 
   const weekSalesActivities = salesActivities.filter(a => isThisWeek(new Date(a.date)));
   const weekPresalesActivities = presalesActivities.filter(a => isThisWeek(new Date(a.date)));
   const weekLogisticActivities = logisticActivities.filter(a => isThisWeek(new Date(a.date)));
+  const weekBackofficeActivities = backofficeActivities.filter(a => isThisWeek(new Date(a.date)));
 
   const visitActivities = activities.filter(a => a.activityType === 'visit');
   const collaborationActivities = activities.filter(a => a.collaboration);
@@ -92,7 +100,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
   const logisticCount = allProfiles.filter(p => p.division === 'logistic').length;
   const backofficeCount = allProfiles.filter(p => p.division === 'backoffice').length;
 
-  const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic') => {
+  const openDetail = (title: string, filterType: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic' | 'backoffice') => {
     setDetailDialog({ open: true, title, filterType });
   };
 
@@ -183,11 +191,19 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           onClick={() => openDetail('Aktivitas Kurir', 'logistic')}
         />
         <StatCard
+          title="Aktivitas Backoffice"
+          value={todayBackofficeActivities.length}
+          subtitle={`${weekBackofficeActivities.length} minggu ini`}
+          icon={Building2}
+          variant="warning"
+          onClick={() => openDetail('Aktivitas Backoffice', 'backoffice')}
+        />
+        <StatCard
           title="Total Kunjungan"
           value={visitActivities.length}
           subtitle="Semua waktu"
           icon={MapPin}
-          variant="warning"
+          variant="primary"
           onClick={() => openDetail('Total Kunjungan', 'visit')}
         />
         <StatCard
@@ -195,7 +211,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           value={collaborationActivities.length}
           subtitle="Kunjungan dengan tim"
           icon={Users}
-          variant="primary"
+          variant="info"
           onClick={() => openDetail('Kolaborasi', 'collaboration')}
         />
         <StatCard
@@ -203,7 +219,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
           value={allProfiles.length}
           subtitle={`${salesCount}S ${presalesCount}P ${logisticCount}L ${backofficeCount}B`}
           icon={TrendingUp}
-          variant="info"
+          variant="success"
           onClick={() => setTeamDialog(true)}
         />
       </div>
@@ -232,6 +248,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         activities={activities}
         filterType={detailDialog.filterType}
         logisticUserIds={logisticUserIds}
+        backofficeUserIds={backofficeUserIds}
       />
 
       <TeamDetailDialog
@@ -239,6 +256,7 @@ export function Dashboard({ activities, persons, allProfiles, companySettings, o
         onClose={() => setTeamDialog(false)}
         profiles={allProfiles}
         isManager={isManager}
+        isSuperadmin={isSuperadmin}
       />
     </div>
   );

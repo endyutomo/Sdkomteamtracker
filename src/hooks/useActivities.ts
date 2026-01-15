@@ -261,12 +261,83 @@ export function useActivities() {
     }
   };
 
+  // Import multiple activities (skip duplicates)
+  const importActivities = async (
+    activitiesToImport: Omit<DailyActivity, 'id' | 'createdAt' | 'userId'>[]
+  ): Promise<{ success: number; skipped: number }> => {
+    if (!user) return { success: 0, skipped: 0 };
+
+    let successCount = 0;
+    let skippedCount = 0;
+
+    for (const activity of activitiesToImport) {
+      try {
+        // Check for duplicate
+        const activityDateStr = activity.date instanceof Date
+          ? format(activity.date, 'yyyy-MM-dd')
+          : String(activity.date).split('T')[0];
+
+        const { data: existing } = await supabase
+          .from('activities')
+          .select('id')
+          .eq('date', activityDateStr)
+          .eq('person_name', activity.personName)
+          .eq('customer_name', activity.customerName)
+          .eq('activity_type', activity.activityType)
+          .maybeSingle();
+
+        if (existing) {
+          skippedCount++;
+          continue;
+        }
+
+        // Insert new activity
+        const insertData = {
+          user_id: user.id,
+          date: activityDateStr,
+          category: (activity.category || 'sales') as any,
+          person_id: activity.personId || null,
+          person_name: activity.personName,
+          activity_type: activity.activityType as any,
+          customer_name: activity.customerName,
+          project: activity.project || null,
+          opportunity: activity.opportunity || null,
+          notes: activity.notes || '',
+          collaboration: activity.collaboration ? JSON.parse(JSON.stringify(activity.collaboration)) : null,
+          photos: activity.photos || [],
+          latitude: activity.latitude ?? null,
+          longitude: activity.longitude ?? null,
+          location_name: activity.locationName ?? null,
+          reminder_at: null,
+        };
+
+        const { error } = await supabase.from('activities').insert(insertData);
+
+        if (error) {
+          console.error('Error importing activity:', error);
+          skippedCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        console.error('Error importing activity:', error);
+        skippedCount++;
+      }
+    }
+
+    // Refresh activities list
+    await fetchActivities();
+
+    return { success: successCount, skipped: skippedCount };
+  };
+
   return {
     activities,
     loading,
     addActivity,
     updateActivity,
     deleteActivity,
+    importActivities,
     refetch: fetchActivities,
     getAvailableYears: useCallback(() => {
       const years = activities.map(a => new Date(a.date).getFullYear());

@@ -547,6 +547,76 @@ export function useSales(options?: UseSalesOptions) {
     });
   }, [enrichedRecords, enrichedTargets]);
 
+  // Import multiple sales records (skip duplicates)
+  const importRecords = async (
+    recordsToImport: Array<{
+      customerName: string;
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+      costPrice: number;
+      otherExpense: number;
+      closingDate: Date;
+      notes?: string;
+    }>
+  ): Promise<{ success: number; skipped: number }> => {
+    if (!user) return { success: 0, skipped: 0 };
+
+    let successCount = 0;
+    let skippedCount = 0;
+
+    for (const record of recordsToImport) {
+      try {
+        const closingDateStr = record.closingDate instanceof Date
+          ? record.closingDate.toISOString().split('T')[0]
+          : String(record.closingDate).split('T')[0];
+
+        // Check for duplicate
+        const { data: existing } = await supabase
+          .from('sales_records')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('customer_name', record.customerName)
+          .eq('product_name', record.productName)
+          .eq('closing_date', closingDateStr)
+          .maybeSingle();
+
+        if (existing) {
+          skippedCount++;
+          continue;
+        }
+
+        const totalAmount = record.quantity * record.unitPrice;
+
+        const { error } = await supabase.from('sales_records').insert({
+          user_id: user.id,
+          customer_name: record.customerName,
+          product_name: record.productName,
+          quantity: record.quantity,
+          unit_price: record.unitPrice,
+          cost_price: record.costPrice,
+          other_expense: record.otherExpense,
+          total_amount: totalAmount,
+          closing_date: closingDateStr,
+          notes: record.notes || null,
+        });
+
+        if (error) {
+          console.error('Error importing sales record:', error);
+          skippedCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        console.error('Error importing sales record:', error);
+        skippedCount++;
+      }
+    }
+
+    await fetchRecords();
+    return { success: successCount, skipped: skippedCount };
+  };
+
   return {
     targets: enrichedTargets,
     records: enrichedRecords,
@@ -558,6 +628,7 @@ export function useSales(options?: UseSalesOptions) {
     addRecord,
     updateRecord,
     deleteRecord,
+    importRecords,
     getTargetForPeriod,
     getSalesForPeriod,
     getSalesTeamReport,

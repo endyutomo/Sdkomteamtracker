@@ -97,10 +97,16 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
             if (!acc[name]) {
                 // Find profile to get division/avatar info
                 const profile = allProfiles.find(p => p.name === name);
+                // Always use profile.division if available, because activity.category might be outdated
+                // for logistic/backoffice users who were created before the category update
+                const division = profile?.division ||
+                    (activity.category === 'logistic' || activity.category === 'backoffice'
+                        ? activity.category
+                        : activity.category || 'unknown');
                 acc[name] = {
                     name,
                     count: 0,
-                    division: profile?.division || activity.category || 'unknown',
+                    division,
                     lastActivity: activity.date,
                 };
             }

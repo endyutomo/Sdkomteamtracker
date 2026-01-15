@@ -12,8 +12,9 @@ interface ActivityDetailDialogProps {
   onClose: () => void;
   title: string;
   activities: DailyActivity[];
-  filterType?: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic';
+  filterType?: 'sales' | 'presales' | 'visit' | 'collaboration' | 'logistic' | 'backoffice';
   logisticUserIds?: string[];
+  backofficeUserIds?: string[];
 }
 
 const activityTypeConfig: Record<string, { label: string; icon: any; color: string }> = {
@@ -27,6 +28,8 @@ const activityTypeConfig: Record<string, { label: string; icon: any; color: stri
   permission: { label: 'Izin', icon: Clock, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
   time_off: { label: 'Cuti', icon: Palmtree, color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400' },
   wfh: { label: 'WFH', icon: Home, color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400' },
+  standby: { label: 'Standby', icon: Clock, color: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400' },
+  pengiriman: { label: 'Pengiriman', icon: MapPin, color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400' },
 };
 
 export function ActivityDetailDialog({
@@ -36,14 +39,16 @@ export function ActivityDetailDialog({
   activities,
   filterType,
   logisticUserIds = [],
+  backofficeUserIds = [],
 }: ActivityDetailDialogProps) {
   const filteredActivities = activities.filter((activity) => {
     if (!filterType) return true;
-    if (filterType === 'sales') return activity.category === 'sales' || !activity.category;
+    if (filterType === 'sales') return (activity.category === 'sales' || !activity.category) && !logisticUserIds.includes(activity.userId) && !backofficeUserIds.includes(activity.userId);
     if (filterType === 'presales') return activity.category === 'presales';
     if (filterType === 'visit') return activity.activityType === 'visit';
     if (filterType === 'collaboration') return !!activity.collaboration;
-    if (filterType === 'logistic') return logisticUserIds.includes(activity.userId);
+    if (filterType === 'logistic') return activity.category === 'logistic' || logisticUserIds.includes(activity.userId);
+    if (filterType === 'backoffice') return activity.category === 'backoffice' || backofficeUserIds.includes(activity.userId);
     return true;
   });
 
@@ -82,7 +87,12 @@ export function ActivityDetailDialog({
                       <div className="flex flex-col items-end gap-1">
                         <Badge className={config.color}>{config.label}</Badge>
                         <Badge variant="outline">
-                          {activity.category === 'presales' ? 'Presales' : 'Sales'}
+                          {/* Determine category based on userId first, then fall back to activity.category */}
+                          {logisticUserIds.includes(activity.userId) ? 'Kurir' :
+                            backofficeUserIds.includes(activity.userId) ? 'Backoffice' :
+                              activity.category === 'presales' ? 'Presales' :
+                                activity.category === 'logistic' ? 'Kurir' :
+                                  activity.category === 'backoffice' ? 'Backoffice' : 'Sales'}
                         </Badge>
                       </div>
                     </div>
@@ -148,9 +158,9 @@ export function ActivityDetailDialog({
                             <span className="text-sm text-muted-foreground">Kolaborasi dengan:</span>
                             {activity.collaboration.collaborators.map((collab, idx) => (
                               <Badge key={idx} variant="secondary" className="text-xs">
-                                {collab.personName} ({collab.division === 'manager' ? 'Manager' : 
-                                  collab.division === 'sales' ? 'Sales' : 
-                                  collab.division === 'presales' ? 'Presales' : 'Lainnya'})
+                                {collab.personName} ({collab.division === 'manager' ? 'Manager' :
+                                  collab.division === 'sales' ? 'Sales' :
+                                    collab.division === 'presales' ? 'Presales' : 'Lainnya'})
                               </Badge>
                             ))}
                           </div>

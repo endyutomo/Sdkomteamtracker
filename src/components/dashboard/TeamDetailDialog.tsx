@@ -20,6 +20,7 @@ interface TeamDetailDialogProps {
   onClose: () => void;
   profiles: Profile[];
   isManager?: boolean;
+  isSuperadmin?: boolean;
 }
 
 interface UserEmail {
@@ -27,13 +28,13 @@ interface UserEmail {
   email: string;
 }
 
-export function TeamDetailDialog({ open, onClose, profiles, isManager = false }: TeamDetailDialogProps) {
+export function TeamDetailDialog({ open, onClose, profiles, isManager = false, isSuperadmin = false }: TeamDetailDialogProps) {
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [userEmails, setUserEmails] = useState<Record<string, string>>({});
   const [editingEmail, setEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [updatingEmail, setUpdatingEmail] = useState(false);
-  
+
   const salesProfiles = profiles.filter(p => p.division === 'sales');
   const presalesProfiles = profiles.filter(p => p.division === 'presales');
   const managerProfiles = profiles.filter(p => p.division === 'manager');
@@ -61,12 +62,12 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
     // For display, we'll show a placeholder
     if (!userEmails[userId]) {
       setUserEmails(prev => ({ ...prev, [userId]: 'Memuat...' }));
-      
+
       try {
         const { data, error } = await supabase.functions.invoke('get-user-email', {
           body: { targetUserId: userId }
         });
-        
+
         if (error) throw error;
         setUserEmails(prev => ({ ...prev, [userId]: data.email || 'Email tidak tersedia' }));
       } catch {
@@ -121,9 +122,9 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
     setUpdatingEmail(true);
     try {
       const { data, error } = await supabase.functions.invoke('update-user-email', {
-        body: { 
-          targetUserId: selectedProfile.user_id, 
-          newEmail: newEmail.trim() 
+        body: {
+          targetUserId: selectedProfile.user_id,
+          newEmail: newEmail.trim()
         }
       });
 
@@ -132,7 +133,7 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
       setUserEmails(prev => ({ ...prev, [selectedProfile.user_id]: newEmail.trim() }));
       setEditingEmail(false);
       setNewEmail('');
-      
+
       toast({
         title: 'Berhasil',
         description: 'Email berhasil diubah',
@@ -254,7 +255,7 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
                 </p>
               )}
             </div>
-            {isManager && !editingEmail && (
+            {(isManager || isSuperadmin) && !editingEmail && (
               <Button
                 size="icon"
                 variant="ghost"
@@ -294,8 +295,8 @@ export function TeamDetailDialog({ open, onClose, profiles, isManager = false }:
             {selectedProfile ? `Profil ${selectedProfile.name}` : `Data Tim (${profiles.length} anggota)`}
           </DialogTitle>
           <DialogDescription>
-            {selectedProfile 
-              ? 'Detail informasi anggota tim' 
+            {selectedProfile
+              ? 'Detail informasi anggota tim'
               : 'Klik nama anggota untuk melihat detail profil'}
           </DialogDescription>
         </DialogHeader>
