@@ -39,16 +39,25 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Check if caller is a manager
+        // Check if caller is a manager or superadmin
         const { data: callerProfile } = await userClient
             .from("profiles")
             .select("division")
             .eq("user_id", caller.id)
             .single();
 
-        if (!callerProfile || callerProfile.division !== "manager") {
+        const { data: callerRole } = await userClient
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", caller.id)
+            .maybeSingle();
+
+        const isManager = callerProfile?.division === "manager";
+        const isSuperadmin = callerRole?.role === "superadmin";
+
+        if (!isManager && !isSuperadmin) {
             return new Response(
-                JSON.stringify({ error: "Only managers can delete users" }),
+                JSON.stringify({ error: "Only managers and superadmins can delete users" }),
                 { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }

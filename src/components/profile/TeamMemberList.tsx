@@ -71,7 +71,7 @@ export function TeamMemberList({ profiles, isManager, isSuperadmin, onUpdate, on
   };
 
   const groupedProfiles = {
-    manager: profiles.filter(p => p.division === 'manager'),
+    // manager: profiles.filter(p => p.division === 'manager'), // Hidden from team list
     sales: profiles.filter(p => p.division === 'sales'),
     presales: profiles.filter(p => p.division === 'presales'),
     backoffice: profiles.filter(p => p.division === 'backoffice'),
