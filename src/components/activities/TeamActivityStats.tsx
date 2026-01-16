@@ -129,9 +129,9 @@ export function TeamActivityStats({ activities, allProfiles }: TeamActivityStats
     if (stats.length === 0 && activities.length === 0) return null; // Only filtering by activities global
 
     const renderTable = (filteredStats: typeof stats) => (
-        <div className="rounded-md border bg-background">
+        <div className="rounded-md border bg-background max-h-[500px] overflow-y-auto">
             <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                         <TableHead className="w-[50px] text-center">Rank</TableHead>
                         <TableHead>Anggota Tim</TableHead>

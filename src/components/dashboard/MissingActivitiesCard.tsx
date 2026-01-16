@@ -233,54 +233,52 @@ export function MissingActivitiesCard({
           <div className="text-center py-4 text-muted-foreground text-sm">Semua tim sudah mengisi aktivitas</div>
         ) : (
           <>
-            <ScrollArea className={expanded ? "h-[300px]" : "max-h-[200px]"}>
-              <div className="space-y-2">
-                {displayedItems.map((item, index) => (
-                  <div
-                    key={`${item.profileId}-${format(item.date, "yyyy-MM-dd")}`}
-                    className="flex items-center justify-between p-2 rounded-lg bg-background border text-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{item.profileName}</span>
-                          <Badge
-                            variant={item.division === "sales" ? "default" : item.division === "presales" ? "secondary" : "outline"}
-                            className={`text-xs h-5 ${(item.division === "logistic" || item.division === "backoffice") ? "bg-pink-100 text-pink-800 border-pink-300" : ""}`}
-                          >
-                            {item.division}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          <Calendar className="h-3 w-3" />
-                          <span>
-                            {item.dayName}, {format(item.date, "dd MMM yyyy", { locale: id })}
-                          </span>
-                        </div>
+            <div className={`space-y-2 overflow-y-auto pr-2 ${expanded ? 'max-h-[400px]' : 'max-h-[250px]'}`}>
+              {displayedItems.map((item, index) => (
+                <div
+                  key={`${item.profileId}-${format(item.date, "yyyy-MM-dd")}`}
+                  className="flex items-center justify-between p-2 rounded-lg bg-background border text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium">{item.profileName}</span>
+                        <Badge
+                          variant={item.division === "sales" ? "default" : item.division === "presales" ? "secondary" : "outline"}
+                          className={`text-xs h-5 ${(item.division === "logistic" || item.division === "backoffice") ? "bg-pink-100 text-pink-800 border-pink-300" : ""}`}
+                        >
+                          {item.division}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <Calendar className="h-3 w-3" />
+                        <span>
+                          {item.dayName}, {format(item.date, "dd MMM yyyy", { locale: id })}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {/* Show fill button for current user's own missing activity if before noon */}
-                      {item.userId === currentUserId && item.canFillActivity && onAddActivity && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-6 text-xs gap-1 border-warning text-warning hover:bg-warning/10"
-                          onClick={onAddActivity}
-                        >
-                          <PlusCircle className="h-3 w-3" />
-                          Isi
-                        </Button>
-                      )}
-                      <Badge variant="destructive" className="text-xs whitespace-nowrap">
-                        {item.status}
-                      </Badge>
-                    </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
+                  <div className="flex items-center gap-2">
+                    {/* Show fill button for current user's own missing activity if before noon */}
+                    {item.userId === currentUserId && item.canFillActivity && onAddActivity && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs gap-1 border-warning text-warning hover:bg-warning/10"
+                        onClick={onAddActivity}
+                      >
+                        <PlusCircle className="h-3 w-3" />
+                        Isi
+                      </Button>
+                    )}
+                    <Badge variant="destructive" className="text-xs whitespace-nowrap">
+                      {item.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             {currentMissing.length > 5 && (
               <Button variant="ghost" size="sm" className="w-full" onClick={() => setExpanded(!expanded)}>
