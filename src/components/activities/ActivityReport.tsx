@@ -272,9 +272,9 @@ export function ActivityReport({ activities, allProfiles }: ActivityReportProps)
         </div>
       ) : (
         <div className="rounded-lg border overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="max-h-[600px] overflow-y-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-muted/50 z-10">
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-[100px]">Tanggal</TableHead>
                   <TableHead>Person</TableHead>
