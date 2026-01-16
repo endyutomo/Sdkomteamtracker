@@ -54,7 +54,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
           <p>Belum ada aktivitas</p>
         </div>
       ) : (
-        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+        <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 scrollbar-thin">
           {recentActivities.map((activity) => {
             const Icon = activityIcons[activity.activityType] || Calendar;
             return (
